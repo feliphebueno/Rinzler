@@ -1,0 +1,2 @@
+class InvalidInputException(BaseException):
+    pass
