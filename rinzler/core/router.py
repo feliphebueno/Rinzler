@@ -1,5 +1,6 @@
 import json
 import re
+from collections import OrderedDict, UserDict
 from wsgiref import headers
 
 from django.http import HttpResponse
@@ -9,7 +10,7 @@ from rinzler.core.route_mapping import RouteMapping
 from django.views.decorators.csrf import csrf_exempt
 
 from rinzler.exceptions.auth_exception import AuthException
-
+from rinzler.core.response import Response
 
 class Router(TemplateView):
     __request = None
@@ -47,17 +48,16 @@ class Router(TemplateView):
 
         try:
             response = self.exec_route_callback(acutal_params)
-            response.content = json.dumps(json.loads(response.content.decode("utf-8")), indent=indent)
-            response.charset = "utf-8"
-            return self.set_response_headers(response)
+
+            return self.set_response_headers(response.render(indent))
         except AuthException as e:
-            response = HttpResponse(json.dumps({"status": False, "message": str(e)}, indent=indent),
-                                    content_type="application/json", status=403, charset="utf-8")
-            return self.set_response_headers(response)
+            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
+                                status=403, charset="utf-8")
+            return self.set_response_headers(response.render(indent))
         except BaseException as e:
-            response = HttpResponse(json.dumps({"status": False, "message": str(e)}, indent=indent),
-                                    content_type="application/json", status=500, charset="utf-8")
-            return self.set_response_headers(response)
+            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
+                                status=500, charset="utf-8")
+            return self.set_response_headers(response.render(indent))
 
     def exec_route_callback(self, actual_params):
 
@@ -118,30 +118,28 @@ class Router(TemplateView):
         return self.__uri[uri_prefix:]
 
     def no_route_found(self, request):
-        response_obj = {
-            "status": False,
-            "exceptions": {
-                "message": "No route found for {0} {1}".format(self.__method, self.__uri),
-            },
-            "request": {
-                "method": self.__method,
-                "path_info": self.__uri,
-                "content": request.body.decode("utf-8")
-            },
-            "message": "We are sorry, but something went terribly wrong."
+        response_obj = OrderedDict()
+        response_obj["status"] = False
+        response_obj["exceptions"] = {
+            "message": "No route found for {0} {1}".format(self.__method, self.__uri),
         }
-
-        response = HttpResponse(json.dumps(response_obj), content_type="application/json", status=404, charset="utf-8")
-        return self.set_response_headers(response)
-
-    def default_route_options(self, request):
-        response_obj = {
-            "status": True,
-            "data": "OK"
+        response_obj["request"] = {
+            "method": self.__method,
+            "path_info": self.__uri,
+            "content": request.body.decode("utf-8")
         }
-        response = HttpResponse(json.dumps(response_obj), content_type="application/json", charset="utf-8")
+        response_obj["message"] = "We are sorry, but something went terribly wrong."
 
-        return self.set_response_headers(response)
+        return Response(response_obj, content_type="application/json", status=404, charset="utf-8")
+
+    @staticmethod
+    def default_route_options(request: HttpRequest):
+        response_obj = OrderedDict()
+
+        response_obj["status"] = True
+        response_obj["data"] = "Ok"
+
+        return Response(response_obj, content_type="application/json", charset="utf-8")
 
     def set_response_headers(self, response: HttpResponse):
 
