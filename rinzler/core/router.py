@@ -1,16 +1,15 @@
-import json
 import re
-from collections import OrderedDict, UserDict
-from wsgiref import headers
+from collections import OrderedDict
 
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.generic import TemplateView
-from rinzler.core.route_mapping import RouteMapping
 from django.views.decorators.csrf import csrf_exempt
 
+from rinzler.core.route_mapping import RouteMapping
 from rinzler.exceptions.auth_exception import AuthException
 from rinzler.core.response import Response
+
 
 class Router(TemplateView):
     __request = None
@@ -67,7 +66,7 @@ class Router(TemplateView):
                 route = list(bound)[0]
                 expected_params = self.get_url_params(route)
 
-                if len(actual_params) == len(expected_params):
+                if self.request_matches_route(self.get_end_point_uri(), route):
                     authenticate = self.authenticate(route, actual_params)
                     if authenticate:
                         pattern_params = self.get_callback_pattern(expected_params, actual_params)
@@ -79,6 +78,21 @@ class Router(TemplateView):
             return self.default_route_options(self.__request)
 
         return self.no_route_found(self.__request)
+
+    def request_matches_route(self, actual_route: str(), expected_route: str()):
+        expected_params = self.get_url_params(expected_route)
+        actual_params = self.get_url_params(actual_route)
+        i = 0
+
+        for param in expected_params:
+            if param[0] != "{":
+                if (len(actual_params) - 1) >= i:
+                    if param != actual_params[i]:
+                        return False
+                else:
+                    return False
+            i += 1
+        return True
 
     def authenticate(self, bound_route, actual_params):
         if self.__auth_service is not None:

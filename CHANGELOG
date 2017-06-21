@@ -1,3 +1,11 @@
+Version 1.11.2:
+Update v1.11.2
+Correção de BUG MONSTRUOSO em rinzler.core.router.Router
+
+Version 1.11.1:
+Update v1.11.1
+Correção de bug na resolução das chamadas em rinzler.core.router.Router
+
 Version 1.11.0:
 Update v1.11.0
 Criação do Response Object e alteração na manipulação da response
