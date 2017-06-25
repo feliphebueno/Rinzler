@@ -1,3 +1,6 @@
+"""
+CallbackResolver service module
+"""
 import re
 from collections import OrderedDict
 
@@ -20,7 +23,7 @@ class Router(TemplateView):
     __method = None
     __bound_routes = dict()
     __auth_service = None
-    __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since,"\
+    __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since," \
                         " Origin, X-GitHub-OTP, X-Requested-With"
     __allowed_methods = "GET,POST,HEAD,DELETE,PUT,OPTIONS"
 
@@ -31,6 +34,11 @@ class Router(TemplateView):
 
     @csrf_exempt
     def route(self, request: HttpRequest):
+        """
+        Prepares for the CallBackResolver and handles the response and exceptions
+        :param request HttpRequest
+        :rtype: HttpResponse
+        """
         self.__request = request
         self.__uri = request.path[1:]
         self.__method = request.method
@@ -47,7 +55,6 @@ class Router(TemplateView):
 
         try:
             response = self.exec_route_callback(acutal_params)
-
             return self.set_response_headers(response.render(indent))
         except AuthException as e:
             response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
@@ -59,7 +66,11 @@ class Router(TemplateView):
             return self.set_response_headers(response.render(indent))
 
     def exec_route_callback(self, actual_params):
-
+        """
+        Executes the resolved end-point callback, or its fallback
+        :param actual_params dict
+        :rtype: Object
+        """
         if self.__method.lower() in self.__bound_routes:
             for bound in self.__bound_routes[self.__method.lower()]:
 
@@ -80,6 +91,12 @@ class Router(TemplateView):
         return self.no_route_found(self.__request)
 
     def request_matches_route(self, actual_route: str(), expected_route: str()):
+        """
+        Determines whether a route matches the actual requested route or not
+        :param actual_route str
+        :param expected_route
+        :rtype: Boolean
+        """
         expected_params = self.get_url_params(expected_route)
         actual_params = self.get_url_params(actual_route)
         i = 0
@@ -95,6 +112,12 @@ class Router(TemplateView):
         return True
 
     def authenticate(self, bound_route, actual_params):
+        """
+        Runs the pre-defined authenticaton method
+        :param bound_route str route matched
+        :param actual_params dict actual url parameters
+        :rtype: object
+        """
         if self.__auth_service is not None:
             auth_route = "{0}_{1}{2}".format(self.__method, self.__route, bound_route)
             auth_data = self.__auth_service.authenticate(self.__request, auth_route, actual_params)
@@ -103,6 +126,12 @@ class Router(TemplateView):
 
     @staticmethod
     def get_callback_pattern(expected_params, actual_params):
+        """
+        Assembles a dictionary whith the parameters schema defined for this route
+        :param expected_params dict parameters schema defined for this route
+        :param actual_params dict actual url parameters
+        :rtype: dict
+        """
         pattern = dict()
         key = 0
         for exp_param in expected_params:
@@ -113,6 +142,11 @@ class Router(TemplateView):
 
     @staticmethod
     def get_url_params(end_point):
+        """
+        Gets route parameters as dictionary
+        :param end_point str target route
+        :rtype: dict
+        """
         var_params = end_point.split('/')
 
         if len(var_params) == 1 and var_params[0] == '':
@@ -128,10 +162,19 @@ class Router(TemplateView):
             return params
 
     def get_end_point_uri(self):
+        """
+        Gets the route from the accessed URL
+        :rtype: str
+        """
         uri_prefix = len(self.__route)
         return self.__uri[uri_prefix:]
 
     def no_route_found(self, request):
+        """
+        Default callback for route not found
+        :param request HttpRequest
+        :rtype: Response
+        """
         response_obj = OrderedDict()
         response_obj["status"] = False
         response_obj["exceptions"] = {
@@ -148,6 +191,11 @@ class Router(TemplateView):
 
     @staticmethod
     def default_route_options(request: HttpRequest):
+        """
+        Default callback for OPTIONS request
+        :param request HttpRequest
+        :rtype: Response
+        """
         response_obj = OrderedDict()
 
         response_obj["status"] = True
@@ -156,7 +204,11 @@ class Router(TemplateView):
         return Response(response_obj, content_type="application/json", charset="utf-8")
 
     def set_response_headers(self, response: HttpResponse):
-
+        """
+        Appends default headers to every response sent by the API
+        :param response HttpResponse
+        :rtype: HttpResponse
+        """
         response_headers = {
             'access-control-allow-headers': self.__allowed_headers,
             'access-control-allow-methods': self.__allowed_methods,
@@ -171,6 +223,11 @@ class Router(TemplateView):
 
         return response
 
-    def auth_config(self, auth_service):
+    def auth_config(self, auth_service: object):
+        """
+        Sets the authenticator service.
+        :param auth_service object
+        :rtype: Router
+        """
         self.__auth_service = auth_service
         return self

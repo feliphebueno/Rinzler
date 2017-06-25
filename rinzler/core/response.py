@@ -1,7 +1,9 @@
+"""
+Interface for HttpResponse
+"""
 import json
 from collections import OrderedDict
 from django.http.response import HttpResponse
-from django.utils.datastructures import OrderedSet
 
 
 class Response(object):
@@ -12,11 +14,23 @@ class Response(object):
     __indent = 0
 
     def __init__(self, content, content_type="text/html", **kwargs):
+        """
+        Constructor
+        :param content str conteúdo da resposta
+        :param content_type str content-type da resposta
+        :param kwargs dict
+        :rtype: None
+        """
         self.__content = OrderedDict(content)
         self.__content_type = content_type
         self.__kwargs = kwargs
 
     def render(self, indent=0):
+        """
+        Renders a HttpResponse for the ongoing request
+        :param indent int
+        :rtype: HttpResponse
+        """
         self.__indent = indent
         return HttpResponse(self.__str__(), content_type=self.__content_type, **self.__kwargs)
 
@@ -27,4 +41,8 @@ class Response(object):
         return self.__str__()
 
     def get_decoded(self):
+        """
+        Returns a decodified instance of this object
+        :rtype: object
+        """
         return json.loads(self.__content)

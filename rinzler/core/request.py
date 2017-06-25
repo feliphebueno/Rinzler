@@ -1,3 +1,6 @@
+"""
+For docs porpouses only
+"""
 from django.http.request import HttpRequest
 
 

@@ -1,1 +1,0 @@
-# Rinzler REST Framework

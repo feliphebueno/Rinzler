@@ -2,36 +2,68 @@ class RouteMapping(object):
 
     __routes = dict()
 
-    def get(self, route, callback):
+    def get(self, route: str(), callback: object()):
+        """
+        Binds a GET route with the given callback 
+        :rtype: object
+        """
         self.__set_route('get', {route: callback})
-        return self
+        return RouteMapping
 
-    def post(self, route, callback):
+    def post(self, route: str(), callback: object()):
+        """
+        Binds a POST route with the given callback
+        :rtype: object
+        """
         self.__set_route('post', {route: callback})
-        return self
+        return RouteMapping
 
-    def put(self, route, callback):
+    def put(self, route: str(), callback: object()):
+        """
+        Binds a PUT route with the given callback
+        :rtype: object
+        """
         self.__set_route('put', {route: callback})
-        return self
+        return RouteMapping
 
-    def delete(self, route, callback):
+    def delete(self, route: str(), callback: object()):
+        """
+        Binds a PUT route with the given callback
+        :rtype: object
+        """
         self.__set_route('delete', {route: callback})
-        return self
+        return RouteMapping
 
-    def head(self, route, callback):
+    def head(self, route: str(), callback: object()):
+        """
+        Binds a HEAD route with the given callback
+        :rtype: object
+        """
         self.__set_route('head', {route: callback})
-        return self
+        return RouteMapping
 
-    def options(self, route, callback):
+    def options(self, route: str(), callback: object()):
+        """
+        Binds a OPTIONS route with the given callback
+        :rtype: object
+        """
         self.__set_route('options', {route: callback})
-        return self
+        return RouteMapping
 
     def __set_route(self, type_route, route):
+        """
+        Sets the given type_route and route to the route mapping
+        :rtype: object
+        """
         if type_route in self.__routes:
             self.__routes[type_route].append(route)
         else:
             self.__routes[type_route] = [route]
-        return self
+        return RouteMapping
 
     def get__routes(self):
+        """
+        Gets the mapped routes
+        :rtype: dict
+        """
         return self.__routes
