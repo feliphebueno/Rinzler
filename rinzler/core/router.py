@@ -55,7 +55,10 @@ class Router(TemplateView):
 
         try:
             response = self.exec_route_callback(acutal_params)
-            return self.set_response_headers(response.render(indent))
+            if type(response) == Response:
+                return self.set_response_headers(response.render(indent))
+            else:
+                return self.set_response_headers(response)
         except AuthException as e:
             response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
                                 status=403, charset="utf-8")
@@ -88,7 +91,10 @@ class Router(TemplateView):
         if self.__method == "OPTIONS":
             return self.default_route_options(self.__request)
 
-        return self.no_route_found(self.__request)
+        if self.__route == '' and self.__uri == '':
+            return self.welcome_page(self.__request)
+        else:
+            return self.no_route_found(self.__request)
 
     def request_matches_route(self, actual_route: str(), expected_route: str()):
         """
@@ -188,6 +194,16 @@ class Router(TemplateView):
         response_obj["message"] = "We are sorry, but something went terribly wrong."
 
         return Response(response_obj, content_type="application/json", status=404, charset="utf-8")
+
+    @staticmethod
+    def welcome_page(request):
+        """
+        Defaulf welcome page when the route / is note mapped yet
+        :param request
+        :rtype: HttpResponse
+        """
+        message = "HTTP/1.1 200 OK RINZLER FRAMEWORK"
+        return HttpResponse("<center><h1>{0}</h1></center>".format(message), content_type="text/html", charset="utf-8")
 
     @staticmethod
     def default_route_options(request: HttpRequest):
