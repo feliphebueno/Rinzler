@@ -203,7 +203,7 @@ class Router(TemplateView):
         :rtype: HttpResponse
         """
         message = "HTTP/1.1 200 OK RINZLER FRAMEWORK"
-        return HttpResponse("<center><h1>{0}<h1></center>".format(message), content_type="text/html", charset="utf-8")
+        return HttpResponse("<center><h1>{0}</h1></center>".format(message), content_type="text/html", charset="utf-8")
 
     @staticmethod
     def default_route_options(request: HttpRequest):
