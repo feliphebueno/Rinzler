@@ -2,6 +2,9 @@ class RouteMapping(object):
 
     __routes = dict()
 
+    def __init__(self):
+        self.__routes = dict()
+
     def get(self, route: str(), callback: object()):
         """
         Binds a GET route with the given callback 

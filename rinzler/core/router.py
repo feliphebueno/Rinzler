@@ -30,7 +30,7 @@ class Router(TemplateView):
     def __init__(self, route, controller):
         self.__route = route
         self.__callable = controller
-        self.__app['router'] = RouteMapping()
+        self.__app['router'] = object()
 
     @csrf_exempt
     def route(self, request: HttpRequest):
@@ -42,6 +42,8 @@ class Router(TemplateView):
         self.__request = request
         self.__uri = request.path[1:]
         self.__method = request.method
+        self.__app['router'] = RouteMapping()
+        self.__bound_routes = dict()
 
         routes = self.__callable().connect(self.__app)
 
@@ -107,14 +109,15 @@ class Router(TemplateView):
         actual_params = self.get_url_params(actual_route)
         i = 0
 
-        for param in expected_params:
-            if param[0] != "{":
-                if (len(actual_params) - 1) >= i:
-                    if param != actual_params[i]:
+        if len(expected_params) == len(actual_params):
+            for param in actual_params:
+                if expected_params[i][0] != "{":
+                    if param != expected_params[i]:
                         return False
-                else:
-                    return False
-            i += 1
+                i += 1
+        else:
+            return False
+
         return True
 
     def authenticate(self, bound_route, actual_params):
