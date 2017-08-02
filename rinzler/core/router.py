@@ -140,7 +140,8 @@ class Router(TemplateView):
             auth_route = "{0}_{1}{2}".format(self.__method, self.__route, bound_route)
             auth_data = self.__auth_service.authenticate(self.__request, auth_route, actual_params)
             self.__app['auth_data'] = auth_data
-            return True
+
+        return True
 
     @staticmethod
     def get_callback_pattern(expected_params, actual_params):
