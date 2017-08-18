@@ -1,3 +1,7 @@
+Version 1.16.1:
+Update v1.16.1
+Adição do método PATCH no header access-control-allow-methods
+
 Version 1.16.0:
 Update v1.16.0
 Adição de suporte ao método HTTP PATCH
