@@ -28,7 +28,7 @@ class Router(TemplateView):
     __auth_service = None
     __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since," \
                         " Origin, X-GitHub-OTP, X-Requested-With"
-    __allowed_methods = "GET,POST,HEAD,DELETE,PUT,OPTIONS"
+    __allowed_methods = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
 
     def __init__(self, route, controller):
         self.__route = route
