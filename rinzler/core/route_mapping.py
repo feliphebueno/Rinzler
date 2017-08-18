@@ -29,6 +29,14 @@ class RouteMapping(object):
         self.__set_route('put', {route: callback})
         return RouteMapping
 
+    def patch(self, route: str(), callback: object()):
+        """
+        Binds a PATCH route with the given callback
+        :rtype: object
+        """
+        self.__set_route('patch', {route: callback})
+        return RouteMapping
+
     def delete(self, route: str(), callback: object()):
         """
         Binds a PUT route with the given callback
