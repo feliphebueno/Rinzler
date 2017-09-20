@@ -1,6 +1,6 @@
 # Rinzler REST Framework
 
-Django-based REST Framework
+Django-based REST Micro-Framework
 
 # Install requires
 
