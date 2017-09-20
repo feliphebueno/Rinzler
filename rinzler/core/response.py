@@ -21,7 +21,7 @@ class Response(object):
         :param kwargs dict
         :rtype: None
         """
-        self.__content = OrderedDict(content)
+        self.__content = content
         self.__content_type = content_type
         self.__kwargs = kwargs
 
@@ -36,9 +36,15 @@ class Response(object):
 
     def __str__(self):
         if self.__indent > 0:
-            return json.dumps(OrderedDict(self.__content), indent=self.__indent, sort_keys=False)
+            if self.__content is not None:
+                return json.dumps(self.__content, indent=self.__indent, sort_keys=False)
+            else:
+                return str()
         else:
-            return json.dumps(OrderedDict(self.__content), sort_keys=False)
+            if self.__content is not None:
+                return json.dumps(self.__content, sort_keys=False)
+            else:
+                return str()
 
     def __repr__(self):
         return self.__str__()

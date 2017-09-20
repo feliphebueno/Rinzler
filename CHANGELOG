@@ -1,3 +1,7 @@
+Version 1.17.0:
+Update 1.17.0
+Melhorias na minificação da resposta JSON
+
 Version 1.16.1:
 Update v1.16.1
 Adição do método PATCH no header access-control-allow-methods
