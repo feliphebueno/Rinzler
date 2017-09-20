@@ -35,7 +35,10 @@ class Response(object):
         return HttpResponse(self.__str__(), content_type=self.__content_type, **self.__kwargs)
 
     def __str__(self):
-        return json.dumps(OrderedDict(self.__content), indent=self.__indent, sort_keys=False)
+        if self.__indent > 0:
+            return json.dumps(OrderedDict(self.__content), indent=self.__indent, sort_keys=False)
+        else:
+            return json.dumps(OrderedDict(self.__content), sort_keys=False)
 
     def __repr__(self):
         return self.__str__()

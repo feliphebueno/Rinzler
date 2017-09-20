@@ -53,7 +53,10 @@ class Router(TemplateView):
         self.__bound_routes = routes['router'].get__routes()
 
         request_headers = request.META
-        indent = 2 if re.match("[Mozilla]{7}", request_headers['HTTP_USER_AGENT']) else 0
+        if 'HTTP_USER_AGENT' in request_headers:
+            indent = 2 if re.match("[Mozilla]{7}", request_headers['HTTP_USER_AGENT']) else 0
+        else:
+            indent = 0
 
         if self.set_end_point_uri() is False:
             return self.set_response_headers(self.no_route_found(self.__request).render(indent))
@@ -68,13 +71,17 @@ class Router(TemplateView):
                 return self.set_response_headers(response)
         except AuthException as e:
             self.__app['log'].warning("< {0}: 403".format(str(e)), exc_info=True)
-            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
-                                status=403, charset="utf-8")
+            response = Response(
+                OrderedDict({"status": False, "message": str(e)}),
+                content_type="application/json", status=403, charset="utf-8"
+            )
             return self.set_response_headers(response.render(indent))
         except BaseException as e:
             self.__app['log'].error("< {0}: 500".format(str(e)), exc_info=True)
-            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
-                                status=500, charset="utf-8")
+            response = Response(
+                OrderedDict({"status": False, "message": str(e)}),
+                content_type="application/json", status=500, charset="utf-8"
+            )
             return self.set_response_headers(response.render(indent))
 
     def exec_route_callback(self, actual_params):
