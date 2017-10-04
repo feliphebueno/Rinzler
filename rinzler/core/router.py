@@ -272,12 +272,14 @@ class Router(TemplateView):
         :param response HttpResponse
         :rtype: HttpResponse
         """
+        public_name = os.environ.get('SERVER_PUBLIC_NAMEX')
         response_headers = {
             'access-control-allow-headers': self.__allowed_headers,
             'access-control-allow-methods': self.__allowed_methods,
             'access-control-allow-origin': "*",
             'access-control-allow-credentials': True,
             'www-authenticate': "Bearer",
+            'server-public-name': public_name if public_name is not None else "No one",
             'user-info': "Rinzler Framework rulez!"
         }
 
