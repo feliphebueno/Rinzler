@@ -272,7 +272,7 @@ class Router(TemplateView):
         :param response HttpResponse
         :rtype: HttpResponse
         """
-        public_name = os.environ.get('SERVER_PUBLIC_NAMEX')
+        public_name = os.environ.get('SERVER_PUBLIC_NAME')
         response_headers = {
             'access-control-allow-headers': self.__allowed_headers,
             'access-control-allow-methods': self.__allowed_methods,
