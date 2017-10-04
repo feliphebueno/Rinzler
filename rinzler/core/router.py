@@ -1,7 +1,6 @@
 """
 CallbackResolver service module
 """
-import codecs
 import os
 import re
 import logging
@@ -18,7 +17,6 @@ from rinzler.exceptions.auth_exception import AuthException
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
 
-from pympler.tracker import SummaryTracker
 
 class Router(TemplateView):
     __request = None
