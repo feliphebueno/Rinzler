@@ -22,7 +22,7 @@ config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "INFO",
             "formatter": "simple",
-            "filename": "info.log",
+            "filename": "log/info.log",
             "maxBytes": 10485760,
             "backupCount": 20,
             "encoding": "utf8"
@@ -31,7 +31,7 @@ config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "ERROR",
             "formatter": "simple",
-            "filename": "errors.log",
+            "filename": "log/error.log",
             "maxBytes": 10485760,
             "backupCount": 20,
             "encoding": "utf8"
