@@ -16,6 +16,7 @@ from rinzler.exceptions.invalid_input_exception import InvalidInputException
 from rinzler.exceptions.auth_exception import AuthException
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
+from rinzler.exceptions.not_found_exception import NotFoundException
 
 
 class Router(TemplateView):
@@ -77,13 +78,13 @@ class Router(TemplateView):
         except AuthException as e:
             self.__app['log'].error("< 403", exc_info=True)
             return self.set_response_headers(Response(None, status=403).render(indent))
-        except IndexError:
+        except NotFoundException:
             self.__app['log'].error("< 404", exc_info=True)
             return Response(None, content_type="application/json", status=404)
         except RequestDataTooBig:
             self.__app['log'].error("< 413", exc_info=True)
             return Response(None, content_type="application/json", status=413)
-        except BaseException:
+        except BaseException as e:
             self.__app['log'].error("< 500", exc_info=True)
             return self.set_response_headers(Response(None, status=500).render(indent))
         finally:
