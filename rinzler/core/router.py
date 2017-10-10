@@ -37,6 +37,15 @@ class Router(TemplateView):
         self.__route = route
         self.__callable = controller
 
+    def flush(self):
+        self.__request = None
+        self.__request = None
+        self.__request = None
+        self.__request = None
+        self.__uri = None
+        self.__method = None
+        self.__bound_routes = dict()
+
     @csrf_exempt
     def route(self, request: HttpRequest):
         """
@@ -44,6 +53,7 @@ class Router(TemplateView):
         :param request HttpRequest
         :rtype: HttpResponse
         """
+        self.flush()
         self.__request = request
         self.__uri = request.path[1:]
         self.__method = request.method
@@ -51,6 +61,7 @@ class Router(TemplateView):
         self.register('log', logging.getLogger(os.urandom(3).hex().upper()))
         self.register('router', RouteMapping())
 
+        self.__app['router'].flush_routes()
         routes = self.__callable().connect(self.__app)
 
         self.__bound_routes = routes['router'].get__routes()
