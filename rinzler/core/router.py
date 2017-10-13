@@ -91,10 +91,10 @@ class Router(TemplateView):
             return self.set_response_headers(Response(None, status=403).render(indent))
         except NotFoundException:
             self.__app['log'].error("< 404", exc_info=True)
-            return Response(None, content_type="application/json", status=404)
+            return self.set_response_headers(Response(None, status=404).render(indent))
         except RequestDataTooBig:
             self.__app['log'].error("< 413", exc_info=True)
-            return Response(None, content_type="application/json", status=413)
+            return self.set_response_headers(Response(None, status=413).render(indent))
         except BaseException as e:
             self.__app['log'].error("< 500", exc_info=True)
             return self.set_response_headers(Response(None, status=500).render(indent))
