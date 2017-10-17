@@ -47,7 +47,7 @@ class Controller(TemplateView):
 
         router = app['router']
 
-        # Definir end-points aqui
+        # map end-points to callbacks here
         router.get('/world/', self.hello_world)
         router.get('/{name}/', self.hello_user)
 
