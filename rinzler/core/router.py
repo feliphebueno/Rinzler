@@ -1,19 +1,22 @@
 """
 CallbackResolver service module
 """
-import codecs
 import os
 import re
+import logging
 from collections import OrderedDict
 
+from django.core.exceptions import RequestDataTooBig
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
 
-from rinzler.core.route_mapping import RouteMapping
+from rinzler.exceptions.invalid_input_exception import InvalidInputException
 from rinzler.exceptions.auth_exception import AuthException
+from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
+from rinzler.exceptions.not_found_exception import NotFoundException
 
 
 class Router(TemplateView):
@@ -28,11 +31,20 @@ class Router(TemplateView):
     __auth_service = None
     __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since," \
                         " Origin, X-GitHub-OTP, X-Requested-With"
-    __allowed_methods = "GET,POST,HEAD,DELETE,PUT,OPTIONS"
+    __allowed_methods = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
 
     def __init__(self, route, controller):
         self.__route = route
         self.__callable = controller
+
+    def flush(self):
+        self.__request = None
+        self.__request = None
+        self.__request = None
+        self.__request = None
+        self.__uri = None
+        self.__method = None
+        self.__bound_routes = dict()
 
     @csrf_exempt
     def route(self, request: HttpRequest):
@@ -41,19 +53,24 @@ class Router(TemplateView):
         :param request HttpRequest
         :rtype: HttpResponse
         """
+        self.flush()
         self.__request = request
         self.__uri = request.path[1:]
         self.__method = request.method
-        self.__app['router'] = RouteMapping()
         self.__bound_routes = dict()
-        self.__app['log'].set_signature(codecs.encode(os.urandom(3), "hex").decode("utf-8").upper())
+        self.register('log', logging.getLogger(os.urandom(3).hex().upper()))
+        self.register('router', RouteMapping())
 
+        self.__app['router'].flush_routes()
         routes = self.__callable().connect(self.__app)
 
         self.__bound_routes = routes['router'].get__routes()
 
         request_headers = request.META
-        indent = 2 if re.match("[Mozilla]{7}", request_headers['HTTP_USER_AGENT']) else 0
+        if 'HTTP_USER_AGENT' in request_headers:
+            indent = 2 if re.match("[Mozilla]{7}", request_headers['HTTP_USER_AGENT']) else 0
+        else:
+            indent = 0
 
         if self.set_end_point_uri() is False:
             return self.set_response_headers(self.no_route_found(self.__request).render(indent))
@@ -66,16 +83,23 @@ class Router(TemplateView):
                 return self.set_response_headers(response.render(indent))
             else:
                 return self.set_response_headers(response)
+        except InvalidInputException:
+            self.__app['log'].error("< 400", exc_info=True)
+            return self.set_response_headers(Response(None, status=400).render(indent))
         except AuthException as e:
-            self.__app['log'].warning("< {0}: 403".format(str(e)), exc_info=True)
-            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
-                                status=403, charset="utf-8")
-            return self.set_response_headers(response.render(indent))
+            self.__app['log'].error("< 403", exc_info=True)
+            return self.set_response_headers(Response(None, status=403).render(indent))
+        except NotFoundException:
+            self.__app['log'].error("< 404", exc_info=True)
+            return self.set_response_headers(Response(None, status=404).render(indent))
+        except RequestDataTooBig:
+            self.__app['log'].error("< 413", exc_info=True)
+            return self.set_response_headers(Response(None, status=413).render(indent))
         except BaseException as e:
-            self.__app['log'].error("< {0}: 500".format(str(e)), exc_info=True)
-            response = Response(OrderedDict({"status": False, "message": str(e)}), content_type="application/json",
-                                status=500, charset="utf-8")
-            return self.set_response_headers(response.render(indent))
+            self.__app['log'].error("< 500", exc_info=True)
+            return self.set_response_headers(Response(None, status=500).render(indent))
+        finally:
+            del self
 
     def exec_route_callback(self, actual_params):
         """
@@ -93,6 +117,9 @@ class Router(TemplateView):
                     self.__app['log'].info("> {0} {1}".format(self.__method, self.__uri))
                     authenticate = self.authenticate(route, actual_params)
                     if authenticate:
+                        self.__app['log'].debug(
+                            "%s(%d) %s" % ("body ", len(self.__request.body), self.__request.body.decode('utf-8'))
+                        )
                         pattern_params = self.get_callback_pattern(expected_params, actual_params)
                         return bound[route](self.__request, self.__app, **pattern_params)
                     else:
@@ -225,15 +252,17 @@ class Router(TemplateView):
 
         return Response(response_obj, content_type="application/json", status=404, charset="utf-8")
 
-    @staticmethod
-    def welcome_page(request):
+    def welcome_page(self, request):
         """
         Defaulf welcome page when the route / is note mapped yet
         :param request
         :rtype: HttpResponse
         """
         message = "HTTP/1.1 200 OK RINZLER FRAMEWORK"
-        return HttpResponse("<center><h1>{0}</h1></center>".format(message), content_type="text/html", charset="utf-8")
+        return HttpResponse(
+            "<center><h1>{0}({1})</h1></center>".format(message, self.__app['app_name']),
+            content_type="text/html", charset="utf-8"
+        )
 
     @staticmethod
     def default_route_options(request: HttpRequest):
@@ -255,12 +284,14 @@ class Router(TemplateView):
         :param response HttpResponse
         :rtype: HttpResponse
         """
+        public_name = os.environ.get('SERVER_PUBLIC_NAME')
         response_headers = {
             'access-control-allow-headers': self.__allowed_headers,
             'access-control-allow-methods': self.__allowed_methods,
             'access-control-allow-origin': "*",
             'access-control-allow-credentials': True,
             'www-authenticate': "Bearer",
+            'server-public-name': public_name if public_name is not None else "No one",
             'user-info': "Rinzler Framework rulez!"
         }
 

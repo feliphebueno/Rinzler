@@ -10,10 +10,11 @@ class Response(object):
 
     __content = OrderedDict
     __content_type = str()
+    __charset = str()
     __kwargs = dict
     __indent = 0
 
-    def __init__(self, content, content_type="text/html", **kwargs):
+    def __init__(self, content, content_type="application/json", charset="utf-8", **kwargs):
         """
         Constructor
         :param content str conteúdo da resposta
@@ -21,8 +22,9 @@ class Response(object):
         :param kwargs dict
         :rtype: None
         """
-        self.__content = OrderedDict(content)
+        self.__content = content
         self.__content_type = content_type
+        self.__charset = charset
         self.__kwargs = kwargs
 
     def render(self, indent=0):
@@ -32,10 +34,21 @@ class Response(object):
         :rtype: HttpResponse
         """
         self.__indent = indent
-        return HttpResponse(self.__str__(), content_type=self.__content_type, **self.__kwargs)
+        return HttpResponse(
+            self.__str__(), content_type=self.__content_type, charset=self.__charset, **self.__kwargs
+        )
 
     def __str__(self):
-        return json.dumps(OrderedDict(self.__content), indent=self.__indent, sort_keys=False)
+        if self.__indent > 0:
+            if self.__content is not None:
+                return json.dumps(self.__content, indent=self.__indent, sort_keys=False)
+            else:
+                return str()
+        else:
+            if self.__content is not None:
+                return json.dumps(self.__content, sort_keys=False)
+            else:
+                return str()
 
     def __repr__(self):
         return self.__str__()

@@ -1,6 +1,6 @@
-import os
+import logging
 
-from .logger.log import Log
+from .logger.log import setup_logging
 from .core.url_assembler import UrlAssembler
 
 __name__ = "Rinzler REST Framework"
@@ -8,13 +8,13 @@ __version__ = "1.12.0"
 __author__ = "Rinzler"
 
 
-def boot(base_path: str()):
-    logger = Log(os.path.realpath(base_path) + "/log").get_logger()
-    url_assembler = UrlAssembler().set_logger(logger)
+def boot(app_name):
+    setup_logging()
+    url_assembler = UrlAssembler().set_app_name(app_name)
 
-    logger.info("App booted =)")
+    logging.getLogger(app_name).info("App booted =)")
 
     return {
         'url_assembler': url_assembler,
-        'log': logger
+        'app_name': app_name
     }

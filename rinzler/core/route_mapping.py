@@ -1,3 +1,8 @@
+import base64
+import hashlib
+import json
+
+
 class RouteMapping(object):
 
     __routes = dict()
@@ -27,6 +32,14 @@ class RouteMapping(object):
         :rtype: object
         """
         self.__set_route('put', {route: callback})
+        return RouteMapping
+
+    def patch(self, route: str(), callback: object()):
+        """
+        Binds a PATCH route with the given callback
+        :rtype: object
+        """
+        self.__set_route('patch', {route: callback})
         return RouteMapping
 
     def delete(self, route: str(), callback: object()):
@@ -59,10 +72,18 @@ class RouteMapping(object):
         :rtype: object
         """
         if type_route in self.__routes:
-            self.__routes[type_route].append(route)
+            if not self.verify_route_already_bound(type_route, route):
+                self.__routes[type_route].append(route)
         else:
             self.__routes[type_route] = [route]
         return RouteMapping
+
+    def verify_route_already_bound(self, type_route: str(), route: dict()):
+        for bound_route in self.__routes[type_route]:
+            bound_key = list(bound_route.keys())[0]
+            route_key = list(route.keys())[0]
+            if bound_key == route_key:
+                return True
 
     def get__routes(self):
         """
@@ -70,3 +91,7 @@ class RouteMapping(object):
         :rtype: dict
         """
         return self.__routes
+
+    def flush_routes(self):
+        self.__routes = dict()
+        return self
