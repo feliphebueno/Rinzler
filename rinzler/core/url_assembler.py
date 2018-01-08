@@ -4,7 +4,9 @@ from rinzler.core.router import Router
 
 
 class UrlAssembler(object):
-
+    """
+    UrlAssembler
+    """
     auth_service = None
     base_path = str()
     logger = object
@@ -29,5 +31,10 @@ class UrlAssembler(object):
         return self
 
     def set_app_name(self, app_name: str):
+        """
+        Sets the current running app's name
+        :param app_name: str
+        :return: self
+        """
         self.app_name = app_name
         return self

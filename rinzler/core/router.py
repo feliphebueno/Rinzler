@@ -12,14 +12,23 @@ from django.http.request import HttpRequest
 from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
 
+from rinzler.exceptions.conflict_exception import ConflictException
+from rinzler.exceptions.content_too_large_exception import ContentTooLargeException
+from rinzler.exceptions.gone_exception import GoneException
+from rinzler.exceptions.internal_exception import InternalException
 from rinzler.exceptions.invalid_input_exception import InvalidInputException
 from rinzler.exceptions.auth_exception import AuthException
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
 from rinzler.exceptions.not_found_exception import NotFoundException
+from rinzler.exceptions.service_unavailable_exception import ServiceUnavailableException
+from rinzler.exceptions.unacceptable_input_exception import UnacceptableInputException
 
 
 class Router(TemplateView):
+    """
+    Router
+    """
     __request = None
     __callable = None
     __app = dict()
@@ -29,7 +38,7 @@ class Router(TemplateView):
     __method = str()
     __bound_routes = dict()
     __auth_service = None
-    __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since," \
+    __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since,"\
                         " Origin, X-GitHub-OTP, X-Requested-With, Content-Checksum"
     __allowed_methods = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
 
@@ -38,6 +47,9 @@ class Router(TemplateView):
         self.__callable = controller
 
     def flush(self):
+        """
+        Flush this objects to prevent memory leaking across requests
+        """
         self.__request = None
         self.__request = None
         self.__request = None
@@ -86,26 +98,38 @@ class Router(TemplateView):
         except InvalidInputException:
             self.__app['log'].error("< 400", exc_info=True)
             return self.set_response_headers(Response(None, status=400).render(indent))
-        except AuthException as e:
+        except AuthException:
             self.__app['log'].error("< 403", exc_info=True)
             return self.set_response_headers(Response(None, status=403).render(indent))
         except NotFoundException:
             self.__app['log'].error("< 404", exc_info=True)
             return self.set_response_headers(Response(None, status=404).render(indent))
-        except RequestDataTooBig:
+        except UnacceptableInputException:
+            self.__app['log'].error("< 406", exc_info=True)
+            return self.set_response_headers(Response(None, status=406).render(indent))
+        except ConflictException:
+            self.__app['log'].error("< 409", exc_info=True)
+            return self.set_response_headers(Response(None, status=409).render(indent))
+        except GoneException:
+            self.__app['log'].error("< 410", exc_info=True)
+            return self.set_response_headers(Response(None, status=410).render(indent))
+        except RequestDataTooBig or ContentTooLargeException:
             self.__app['log'].error("< 413", exc_info=True)
             return self.set_response_headers(Response(None, status=413).render(indent))
-        except BaseException as e:
+        except BaseException or InternalException:
             self.__app['log'].error("< 500", exc_info=True)
             return self.set_response_headers(Response(None, status=500).render(indent))
+        except ServiceUnavailableException:
+            self.__app['log'].error("< 503", exc_info=True)
+            return self.set_response_headers(Response(None, status=503).render(indent))
         finally:
             del self
 
-    def exec_route_callback(self, actual_params):
+    def exec_route_callback(self, actual_params) -> Response:
         """
         Executes the resolved end-point callback, or its fallback
         :param actual_params dict
-        :rtype: object
+        :rtype: Response
         """
         if self.__method.lower() in self.__bound_routes:
             for bound in self.__bound_routes[self.__method.lower()]:
@@ -313,7 +337,14 @@ class Router(TemplateView):
         self.__auth_service = auth_service
         return self
 
-    def register(self, name: str(), handler: object(), force=False):
+    def register(self, name: str, handler: object, force=False):
+        """
+        Registra um seviço em APP
+        :param name: str
+        :param handler: object
+        :param force: bool
+        :return: self
+        """
         if name in self.__app:
             if force is True:
                 self.__app[name] = handler

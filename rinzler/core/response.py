@@ -7,7 +7,9 @@ from django.http.response import HttpResponse
 
 
 class Response(object):
-
+    """
+    Response
+    """
     __content = OrderedDict
     __content_type = str()
     __charset = str()
@@ -55,7 +57,7 @@ class Response(object):
 
     def get_decoded(self):
         """
-        Returns a decodified instance of this object
+        Returns a decoded instance of this object
         :rtype: object
         """
         return json.loads(self.__content)

@@ -4,4 +4,7 @@ Exception raised when the requested resource(route, file, database record) could
 
 
 class NotFoundException(BaseException):
+    """
+    NotFoundException
+    """
     pass

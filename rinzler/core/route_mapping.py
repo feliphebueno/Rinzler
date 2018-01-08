@@ -1,10 +1,12 @@
-import base64
-import hashlib
-import json
+"""
+Route to callback mapper
+"""
 
 
 class RouteMapping(object):
-
+    """
+    RouteMapping
+    """
     __routes = dict()
 
     def __init__(self):
@@ -78,7 +80,13 @@ class RouteMapping(object):
             self.__routes[type_route] = [route]
         return RouteMapping
 
-    def verify_route_already_bound(self, type_route: str(), route: dict()):
+    def verify_route_already_bound(self, type_route: str(), route: dict()) -> bool:
+        """
+
+        :param type_route: str
+        :param route: dict
+        :return: bool
+        """
         for bound_route in self.__routes[type_route]:
             bound_key = list(bound_route.keys())[0]
             route_key = list(route.keys())[0]
@@ -93,5 +101,9 @@ class RouteMapping(object):
         return self.__routes
 
     def flush_routes(self):
+        """
+
+        :return: self\
+        """
         self.__routes = dict()
         return self
