@@ -12,17 +12,19 @@ from django.http.request import HttpRequest
 from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
 
+from rinzler.core.route_mapping import RouteMapping
+from rinzler.core.response import Response
 from rinzler.exceptions.conflict_exception import ConflictException
 from rinzler.exceptions.content_too_large_exception import ContentTooLargeException
 from rinzler.exceptions.gone_exception import GoneException
 from rinzler.exceptions.internal_exception import InternalException
 from rinzler.exceptions.invalid_input_exception import InvalidInputException
 from rinzler.exceptions.auth_exception import AuthException
-from rinzler.core.route_mapping import RouteMapping
-from rinzler.core.response import Response
+from rinzler.exceptions.not_allowed_exception import NotAllowedException
 from rinzler.exceptions.not_found_exception import NotFoundException
 from rinzler.exceptions.service_unavailable_exception import ServiceUnavailableException
 from rinzler.exceptions.unacceptable_input_exception import UnacceptableInputException
+from rinzler.exceptions.unauthorized_exception import UnauthorizedException
 
 
 class Router(TemplateView):
@@ -98,12 +100,18 @@ class Router(TemplateView):
         except InvalidInputException:
             self.__app['log'].error("< 400", exc_info=True)
             return self.set_response_headers(Response(None, status=400).render(indent))
+        except UnauthorizedException:
+            self.__app['log'].error("< 401", exc_info=True)
+            return self.set_response_headers(Response(None, status=401).render(indent))
         except AuthException:
             self.__app['log'].error("< 403", exc_info=True)
             return self.set_response_headers(Response(None, status=403).render(indent))
         except NotFoundException:
             self.__app['log'].error("< 404", exc_info=True)
             return self.set_response_headers(Response(None, status=404).render(indent))
+        except NotAllowedException:
+            self.__app['log'].error("< 405", exc_info=True)
+            return self.set_response_headers(Response(None, status=405).render(indent))
         except UnacceptableInputException:
             self.__app['log'].error("< 406", exc_info=True)
             return self.set_response_headers(Response(None, status=406).render(indent))

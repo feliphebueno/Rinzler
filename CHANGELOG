@@ -1,3 +1,7 @@
+Version 1.22.0:
+Update 1.21.0
+Add support to HTTP errors 401 and 405
+
 Version 1.21.0:
 Update 1.21.0
 Enhance http errors handling
