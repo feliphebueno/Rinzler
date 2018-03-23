@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
+from raven.contrib.django.raven_compat.models import client
 
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
@@ -45,12 +46,13 @@ class Router(TemplateView):
     __allowed_methods = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
 
     def __init__(self, route, controller):
+        super(Router, self).__init__()
         self.__route = route
         self.__callable = controller
 
     def flush(self):
         """
-        Flush this objects to prevent memory leaking across requests
+        Flushes this objects to prevent memory leaking across requests
         """
         self.__request = None
         self.__request = None
@@ -90,54 +92,62 @@ class Router(TemplateView):
             return self.set_response_headers(self.no_route_found(self.__request).render(indent))
 
         acutal_params = self.get_url_params(self.get_end_point_uri())
-
+        response = HttpResponse(None)
         try:
             response = self.exec_route_callback(acutal_params)
+        except InvalidInputException:
+            client.captureException()
+            self.__app['log'].error("< 400", exc_info=True)
+            response = Response(None, status=400)
+        except UnauthorizedException:
+            client.captureException()
+            self.__app['log'].error("< 401", exc_info=True)
+            response = Response(None, status=401)
+        except AuthException:
+            client.captureException()
+            self.__app['log'].error("< 403", exc_info=True)
+            response = Response(None, status=403)
+        except NotFoundException:
+            self.__app['log'].error("< 404", exc_info=True)
+            response = Response(None, status=404)
+        except NotAllowedException:
+            self.__app['log'].error("< 405", exc_info=True)
+            response = Response(None, status=405)
+        except UnacceptableInputException:
+            client.captureException()
+            self.__app['log'].error("< 406", exc_info=True)
+            response = Response(None, status=406)
+        except ConflictException:
+            client.captureException()
+            self.__app['log'].error("< 409", exc_info=True)
+            response = Response(None, status=409)
+        except GoneException:
+            client.captureException()
+            self.__app['log'].error("< 410", exc_info=True)
+            response = Response(None, status=410)
+        except RequestDataTooBig or ContentTooLargeException:
+            client.captureException()
+            self.__app['log'].error("< 413", exc_info=True)
+            response = Response(None, status=413)
+        except BaseException or InternalException:
+            client.captureException()
+            self.__app['log'].error("< 500", exc_info=True)
+            response = Response(None, status=500)
+        except ServiceUnavailableException:
+            client.captureException()
+            self.__app['log'].error("< 503", exc_info=True)
+            response = Response(None, status=503)
+        finally:
             if type(response) == Response:
                 return self.set_response_headers(response.render(indent))
             else:
                 return self.set_response_headers(response)
-        except InvalidInputException:
-            self.__app['log'].error("< 400", exc_info=True)
-            return self.set_response_headers(Response(None, status=400).render(indent))
-        except UnauthorizedException:
-            self.__app['log'].error("< 401", exc_info=True)
-            return self.set_response_headers(Response(None, status=401).render(indent))
-        except AuthException:
-            self.__app['log'].error("< 403", exc_info=True)
-            return self.set_response_headers(Response(None, status=403).render(indent))
-        except NotFoundException:
-            self.__app['log'].error("< 404", exc_info=True)
-            return self.set_response_headers(Response(None, status=404).render(indent))
-        except NotAllowedException:
-            self.__app['log'].error("< 405", exc_info=True)
-            return self.set_response_headers(Response(None, status=405).render(indent))
-        except UnacceptableInputException:
-            self.__app['log'].error("< 406", exc_info=True)
-            return self.set_response_headers(Response(None, status=406).render(indent))
-        except ConflictException:
-            self.__app['log'].error("< 409", exc_info=True)
-            return self.set_response_headers(Response(None, status=409).render(indent))
-        except GoneException:
-            self.__app['log'].error("< 410", exc_info=True)
-            return self.set_response_headers(Response(None, status=410).render(indent))
-        except RequestDataTooBig or ContentTooLargeException:
-            self.__app['log'].error("< 413", exc_info=True)
-            return self.set_response_headers(Response(None, status=413).render(indent))
-        except BaseException or InternalException:
-            self.__app['log'].error("< 500", exc_info=True)
-            return self.set_response_headers(Response(None, status=500).render(indent))
-        except ServiceUnavailableException:
-            self.__app['log'].error("< 503", exc_info=True)
-            return self.set_response_headers(Response(None, status=503).render(indent))
-        finally:
-            del self
 
-    def exec_route_callback(self, actual_params) -> Response:
+    def exec_route_callback(self, actual_params) -> Response or object:
         """
         Executes the resolved end-point callback, or its fallback
         :param actual_params dict
-        :rtype: Response
+        :rtype: Response or object
         """
         if self.__method.lower() in self.__bound_routes:
             for bound in self.__bound_routes[self.__method.lower()]:
@@ -188,7 +198,7 @@ class Router(TemplateView):
 
         return True
 
-    def authenticate(self, bound_route, actual_params):
+    def authenticate(self, bound_route, actual_params) -> object:
         """
         Runs the pre-defined authenticaton method
         :param bound_route str route matched
@@ -310,9 +320,9 @@ class Router(TemplateView):
 
         return Response(response_obj, content_type="application/json", charset="utf-8")
 
-    def set_response_headers(self, response: HttpResponse):
+    def set_response_headers(self, response: HttpResponse) -> HttpResponse:
         """
-        Appends default headers to every response sent by the API
+        Appends default headers to every response returned by the API
         :param response HttpResponse
         :rtype: HttpResponse
         """
@@ -347,7 +357,7 @@ class Router(TemplateView):
 
     def register(self, name: str, handler: object, force=False):
         """
-        Registra um seviço em APP
+        Registers a sevico to the APP object
         :param name: str
         :param handler: object
         :param force: bool

@@ -1,3 +1,7 @@
+Version 1.23.0:
+Update 1.23.0
+Add support for Sentry.io log monitor.
+
 Version 1.22.0:
 Update 1.21.0
 Add support to HTTP errors 401 and 405
