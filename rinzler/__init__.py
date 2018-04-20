@@ -2,7 +2,7 @@
 Main
 """
 __name__ = "Rinzler REST Framework"
-__version__ = "2.0.0"
+__version__ = "2.0.2"
 __author__ = "Rinzler<github.com/feliphebueno>"
 
 import os
