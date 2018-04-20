@@ -1,12 +1,15 @@
 # general things to ignore
 build/
 dist/
+/app/
+/log/
+__pycache__/
 *.egg-info/
 *.egg
 *.py[cod]
-__pycache__/
 *.so
 *~
+manage.py
 
 # due to using tox and pytest
 .tox
