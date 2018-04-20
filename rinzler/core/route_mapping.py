@@ -1,6 +1,7 @@
 """
-Route to callback mapper
+End-point to callback mapper
 """
+__author__ = "Rinzler<github.com/feliphebueno>"
 
 
 class RouteMapping(object):
@@ -93,7 +94,7 @@ class RouteMapping(object):
             if bound_key == route_key:
                 return True
 
-    def get__routes(self):
+    def get_routes(self):
         """
         Gets the mapped routes
         :rtype: dict

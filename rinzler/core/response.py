@@ -1,6 +1,8 @@
 """
 Interface for HttpResponse
 """
+__author__ = "Rinzler<github.com/feliphebueno>"
+
 import json
 from collections import OrderedDict
 from django.http.response import HttpResponse
@@ -37,7 +39,7 @@ class Response(object):
         """
         self.__indent = indent
         return HttpResponse(
-            self.__str__(), content_type=self.__content_type, charset=self.__charset, **self.__kwargs
+            str(self), content_type=self.__content_type, charset=self.__charset, **self.__kwargs
         )
 
     def __str__(self):
