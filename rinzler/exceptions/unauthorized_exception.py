@@ -1,11 +1,14 @@
 """
 Exception raised when a request must be authenticated
 """
-__author__ = "Rinzler<github.com/feliphebueno>"
+from rinzler.exceptions import RinzlerHttpException
+
+__author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 
-class UnauthorizedException(BaseException):
+class UnauthorizedException(RinzlerHttpException):
     """
     AuthException
     """
-    pass
+    status_code = 401
+    exception_name = "Unauthorized"
