@@ -1,8 +1,10 @@
 """
 Main
 """
+from django.core.exceptions import RequestDataTooBig
+
 __name__ = "Rinzler REST Framework"
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 __author__ = "Rinzler<github.com/feliphebueno>"
 
 import os
@@ -11,7 +13,6 @@ from datetime import datetime
 from collections import OrderedDict
 from logging import Logger, getLogger
 
-from django.core.exceptions import RequestDataTooBig
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.generic import TemplateView
@@ -25,17 +26,8 @@ from rinzler.auth.base_auth_service import BaseAuthService
 from rinzler.logger.log import setup_logging
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.core.response import Response
-from rinzler.exceptions.conflict_exception import ConflictException
-from rinzler.exceptions.content_too_large_exception import ContentTooLargeException
-from rinzler.exceptions.gone_exception import GoneException
-from rinzler.exceptions.internal_exception import InternalException
-from rinzler.exceptions.invalid_input_exception import InvalidInputException
 from rinzler.exceptions.auth_exception import AuthException
-from rinzler.exceptions.not_allowed_exception import NotAllowedException
-from rinzler.exceptions.not_found_exception import NotFoundException
-from rinzler.exceptions.service_unavailable_exception import ServiceUnavailableException
-from rinzler.exceptions.unacceptable_input_exception import UnacceptableInputException
-from rinzler.exceptions.unauthorized_exception import UnauthorizedException
+from rinzler.exceptions import RinzlerHttpException
 
 
 class Rinzler(object):
@@ -154,48 +146,18 @@ class Router(TemplateView):
         response = HttpResponse(None)
         try:
             response = self.exec_route_callback()
-        except InvalidInputException:
+        except RinzlerHttpException as e:
             client.captureException()
-            self.app.log.error("< 400", exc_info=True)
-            response = Response(None, status=400)
-        except UnauthorizedException:
-            client.captureException()
-            self.app.log.error("< 401", exc_info=True)
-            response = Response(None, status=401)
-        except AuthException:
-            client.captureException()
-            self.app.log.error("< 403", exc_info=True)
-            response = Response(None, status=403)
-        except NotFoundException:
-            self.app.log.error("< 404", exc_info=True)
-            response = Response(None, status=404)
-        except NotAllowedException:
-            self.app.log.error("< 405", exc_info=True)
-            response = Response(None, status=405)
-        except UnacceptableInputException:
-            client.captureException()
-            self.app.log.error("< 406", exc_info=True)
-            response = Response(None, status=406)
-        except ConflictException:
-            client.captureException()
-            self.app.log.error("< 409", exc_info=True)
-            response = Response(None, status=409)
-        except GoneException:
-            client.captureException()
-            self.app.log.error("< 410", exc_info=True)
-            response = Response(None, status=410)
-        except RequestDataTooBig or ContentTooLargeException:
+            self.app.log.error(f"< {e.status_code}", exc_info=True)
+            response = Response(None, status=e.status_code)
+        except RequestDataTooBig:
             client.captureException()
             self.app.log.error("< 413", exc_info=True)
             response = Response(None, status=413)
-        except BaseException or InternalException:
+        except BaseException:
             client.captureException()
             self.app.log.error("< 500", exc_info=True)
             response = Response(None, status=500)
-        except ServiceUnavailableException:
-            client.captureException()
-            self.app.log.error("< 503", exc_info=True)
-            response = Response(None, status=503)
         finally:
             if type(response) == Response:
                 return self.set_response_headers(response.render(indent))
@@ -424,6 +386,7 @@ class Router(TemplateView):
             indent = 0
 
         return indent
+
 
 def boot(app_name) -> Rinzler:
     """
