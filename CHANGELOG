@@ -1,3 +1,8 @@
+Version 2.0.4:
+Update 2.0.4
+- Add build meta-info
+- Lock dependencies version
+
 Version 2.0.3:
 Update 2.0.3
 In response to issue #11
