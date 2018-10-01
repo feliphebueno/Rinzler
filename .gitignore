@@ -16,3 +16,4 @@ manage.py
 .cache
 .DS_Store
 .idea
+venv/
