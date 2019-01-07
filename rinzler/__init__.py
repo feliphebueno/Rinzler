@@ -4,7 +4,7 @@ Main
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 __author__ = "Rinzler<github.com/feliphebueno>"
 
 import os
