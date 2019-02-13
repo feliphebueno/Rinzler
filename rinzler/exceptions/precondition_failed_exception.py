@@ -9,7 +9,7 @@ __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 class PreconditionFailedException(RinzlerHttpException):
     """
-    AuthException
+    PreconditionFailedException
     """
     status_code = 412
     exception_name = "Precondition Failed"
