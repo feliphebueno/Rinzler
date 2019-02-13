@@ -9,7 +9,7 @@ __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 class ExpectationFailedException(RinzlerHttpException):
     """
-    AuthException
+    ExpectationFailedException
     """
     status_code = 417
     exception_name = "Expectation Failed"

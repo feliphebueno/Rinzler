@@ -8,7 +8,7 @@ __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 class UnauthorizedException(RinzlerHttpException):
     """
-    AuthException
+    UnauthorizedException
     """
     status_code = 401
     exception_name = "Unauthorized"

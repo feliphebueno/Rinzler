@@ -4,7 +4,7 @@ Main
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.0.5"
+__version__ = "2.0.6"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 import os
@@ -200,7 +200,7 @@ class Router(TemplateView):
         else:
             return self.no_route_found(self.__request)
 
-    def request_matches_route(self, actual_route: str(), expected_route: str()):
+    def request_matches_route(self, actual_route: str, expected_route: str):
         """
         Determines whether a route matches the actual requested route or not
         :param actual_route str
