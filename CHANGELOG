@@ -1,3 +1,8 @@
+
+Version 2.0.7:
+Update 2.0.7
+- Removed __str__ over write in exceptions/__init__.py
+
 Version 2.0.6:
 Update 2.0.6
 - Added Failed Dependency Excpetion 424
