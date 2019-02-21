@@ -17,8 +17,5 @@ class RinzlerHttpException(BaseException):
     def __int__(self):
         return int(self.status_code)
 
-    def __str__(self):
-        return str(self.exception_name)
-
     def __repr__(self):
         return self.__str__()
