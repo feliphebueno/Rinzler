@@ -26,6 +26,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version=__version__,
 
+    long_description_content_type="text/markdown",
     description='Django-based REST API Framework',
     long_description=long_description,
 

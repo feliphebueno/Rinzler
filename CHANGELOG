@@ -1,4 +1,8 @@
 
+Version 2.1.1:
+Update 2.1.0
+- Added "long_description_content_type" in setup.py
+
 Version 2.1.0:
 Update 2.0.7
 - Bump Django from 2.1.2 to 2.2.9
