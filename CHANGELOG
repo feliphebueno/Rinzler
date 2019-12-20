@@ -1,4 +1,8 @@
 
+Version 2.1.0:
+Update 2.0.7
+- Bump Django from 2.1.2 to 2.2.9
+
 Version 2.0.7:
 Update 2.0.7
 - Removed __str__ over write in exceptions/__init__.py
