@@ -12,3 +12,9 @@ class NotFoundException(RinzlerHttpException):
     """
     status_code = 404
     exception_name = "Not Found"
+    level = "debug"
+
+    def __init__(self, *args, **kwargs):
+        if "level" in kwargs:
+            self.level = kwargs["level"]
+        super(NotFoundException, self).__init__(*args)

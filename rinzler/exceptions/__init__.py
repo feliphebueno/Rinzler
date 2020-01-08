@@ -13,8 +13,10 @@ class RinzlerHttpException(BaseException):
     """
     status_code = 0
     exception_name = "Cataclysmic Error"
+    level = ""
 
-    def __int__(self):
+    def __int__(self, *args):
+        super(RinzlerHttpException, self).__init__(*args)
         return int(self.status_code)
 
     def __repr__(self):

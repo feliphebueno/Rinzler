@@ -148,7 +148,20 @@ class Router(TemplateView):
             response = self.exec_route_callback()
         except RinzlerHttpException as e:
             client.captureException()
-            self.app.log.error(f"< {e.status_code}", exc_info=True)
+            if e.level == "critical":
+                self.app.log.critical(f"< {e.status_code}", exc_info=True)
+            elif e.level == "exception":
+                self.app.log.exception(f"< {e.status_code}", exc_info=True)
+            elif e.level == "error":
+                self.app.log.error(f"< {e.status_code}", exc_info=True)
+            elif e.level == "warning":
+                self.app.log.warning(f"< {e.status_code}", exc_info=True)
+            elif e.level == "debug":
+                self.app.log.debug(f"< {e.status_code}", exc_info=True)
+            elif e.level == "info":
+                self.app.log.info(f"< {e.status_code}", exc_info=True)
+            else:
+                self.app.log.error(f"< {e.status_code}", exc_info=True)
             response = Response(None, status=e.status_code)
         except RequestDataTooBig:
             client.captureException()
