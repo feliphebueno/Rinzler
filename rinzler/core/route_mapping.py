@@ -13,7 +13,7 @@ class RouteMapping(object):
     def __init__(self):
         self.__routes = dict()
 
-    def get(self, route: str(), callback: object()):
+    def get(self, route: str, callback: object()):
         """
         Binds a GET route with the given callback 
         :rtype: object
@@ -21,7 +21,7 @@ class RouteMapping(object):
         self.__set_route('get', {route: callback})
         return RouteMapping
 
-    def post(self, route: str(), callback: object()):
+    def post(self, route: str, callback: object()):
         """
         Binds a POST route with the given callback
         :rtype: object
@@ -29,7 +29,7 @@ class RouteMapping(object):
         self.__set_route('post', {route: callback})
         return RouteMapping
 
-    def put(self, route: str(), callback: object()):
+    def put(self, route: str, callback: object()):
         """
         Binds a PUT route with the given callback
         :rtype: object
@@ -37,7 +37,7 @@ class RouteMapping(object):
         self.__set_route('put', {route: callback})
         return RouteMapping
 
-    def patch(self, route: str(), callback: object()):
+    def patch(self, route: str, callback: object()):
         """
         Binds a PATCH route with the given callback
         :rtype: object
@@ -45,7 +45,7 @@ class RouteMapping(object):
         self.__set_route('patch', {route: callback})
         return RouteMapping
 
-    def delete(self, route: str(), callback: object()):
+    def delete(self, route: str, callback: object()):
         """
         Binds a PUT route with the given callback
         :rtype: object
@@ -53,7 +53,7 @@ class RouteMapping(object):
         self.__set_route('delete', {route: callback})
         return RouteMapping
 
-    def head(self, route: str(), callback: object()):
+    def head(self, route: str, callback: object()):
         """
         Binds a HEAD route with the given callback
         :rtype: object
@@ -61,7 +61,7 @@ class RouteMapping(object):
         self.__set_route('head', {route: callback})
         return RouteMapping
 
-    def options(self, route: str(), callback: object()):
+    def options(self, route: str, callback: object()):
         """
         Binds a OPTIONS route with the given callback
         :rtype: object
@@ -81,7 +81,7 @@ class RouteMapping(object):
             self.__routes[type_route] = [route]
         return RouteMapping
 
-    def verify_route_already_bound(self, type_route: str(), route: dict()) -> bool:
+    def verify_route_already_bound(self, type_route: str, route: dict) -> bool:
         """
 
         :param type_route: str

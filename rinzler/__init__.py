@@ -1,10 +1,12 @@
 """
 Main
 """
+from typing import Union, Tuple, List, Dict
+
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 import os
@@ -38,6 +40,7 @@ class Rinzler(object):
     log: Logger = None
     app_name: str = None
     auth_service: BaseAuthService = None
+    response_callback: callable = None
     auth_data = dict()
     allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since,"\
         " Origin, X-GitHub-OTP, X-Requested-With, Content-Checksum"
@@ -98,6 +101,19 @@ class Rinzler(object):
         else:
             raise TypeError("Your auth service object must be a subclass of rinzler.auth.BaseAuthService.")
 
+    def set_response_callback(self, callback: callable):
+        """
+        Sets the callable to call before request
+        :param callback: callable
+        :raises: TypeError If the callback is not a callable
+        :rtype: Rinzler
+        """
+        if hasattr(callback, '__call__'):
+            self.response_callback = callback
+            return self
+        else:
+            raise TypeError("Your callback response is not a callable")
+
 
 class Router(TemplateView):
     """
@@ -113,6 +129,8 @@ class Router(TemplateView):
     __method = str()
     __end_points = dict()
     __auth_service: BaseAuthService = None
+    __url_params_like = str()
+    __url_params: Dict[str, str] = dict()
 
     def __init__(self, app: Rinzler, route, controller):
         super(Router, self).__init__()
@@ -160,6 +178,12 @@ class Router(TemplateView):
             response = Response(None, status=500)
         finally:
             if type(response) == Response:
+                self.call_response_callback(
+                    response=response, method=request.method, route=self.__route, url=self.__uri,
+                    url_params_like=self.__url_params_like, url_params=self.__url_params, body=request.body,
+                    app_name=self.app.app_name, auth_data=self.app.auth_data,
+                    client_ips=self.get_client_ip(request.META)
+                )
                 return self.set_response_headers(response.render(indent))
             else:
                 return self.set_response_headers(response)
@@ -169,6 +193,8 @@ class Router(TemplateView):
         Executes the resolved end-point callback, or its fallback
         :rtype: Response or object
         """
+        self.__url_params_like = str()
+        self.__url_params = dict()
         if self.__method.lower() in self.__end_points:
             for bound in self.__end_points[self.__method.lower()]:
 
@@ -186,6 +212,8 @@ class Router(TemplateView):
                         self.app.request_handle_time = (
                             lambda d: int((d.days * 24 * 60 * 60 * 1000) + (d.seconds * 1000) + (d.microseconds / 1000))
                         )(datetime.now() - self.__request_start)
+                        self.__url_params_like = route
+                        self.__url_params = pattern_params
 
                         return bound[route](self.__request, self.app, **pattern_params)
                     else:
@@ -386,6 +414,33 @@ class Router(TemplateView):
             indent = 0
 
         return indent
+
+    def call_response_callback(self, **kwargs) -> bool:
+        """
+        Calls the response callback configured to this instance
+        :param kwargs: the parameters you'd like to pass
+        :rtype: bool
+        """
+        if self.app.response_callback:
+            self.app.response_callback.call(**kwargs)
+
+        return True
+
+    @staticmethod
+    def get_client_ip(meta: dict) -> Union[Tuple[List[str], str, str], None]:
+        """
+        Returns the client ip address from the request headers
+        Return the headers: HTTP_X_FORWARDED_FOR, HTTP_X_REAL_IP, REMOTE_ADDR
+        """
+        try:
+            ip_f = meta.get("HTTP_X_FORWARDED_FOR", None)
+            ip_list = list()
+            if ip_f:
+                ip_list: List[str] = [i.strop() for i in ip_f.split(",")]
+
+            return ip_list, meta.get("HTTP_X_REAL_IP"), meta.get("REMOTE_ADDR")
+        except (KeyError, IndexError):
+            return None
 
 
 def boot(app_name) -> Rinzler:
