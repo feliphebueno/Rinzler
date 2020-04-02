@@ -11,6 +11,7 @@ class UrlAssembler(object):
     base_path = str()
     logger = object
     app_name = str()
+    response_callback = object
 
     def mount(self, route, callback):
         """
@@ -19,7 +20,11 @@ class UrlAssembler(object):
         """
         return url(
             r'{0}'.format(route),
-            Router(route, callback).register('app_name', self.app_name).auth_config(self.auth_service).route
+            Router(route, callback)
+                .register('app_name', self.app_name)
+                .auth_config(self.auth_service)
+                .response_callback_config(self.response_callback)
+                .route
         )
 
     def set_auth_service(self, auth_service):
@@ -37,4 +42,11 @@ class UrlAssembler(object):
         :return: self
         """
         self.app_name = app_name
+        return self
+
+    def set_response_callback(self, callback):
+        """
+        Sets a callback to be called after every Response
+        """
+        self.response_callback = callback
         return self

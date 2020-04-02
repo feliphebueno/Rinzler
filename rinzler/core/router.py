@@ -5,6 +5,7 @@ import os
 import re
 import logging
 from collections import OrderedDict
+from typing import Union, List, Tuple, Dict
 
 from django.core.exceptions import RequestDataTooBig
 from django.http import HttpResponse
@@ -41,6 +42,9 @@ class Router(TemplateView):
     __method = str()
     __bound_routes = dict()
     __auth_service = None
+    __response_callback = None
+    __url_params_like = str()
+    __url_params: Dict[str, str] = dict()
     __allowed_headers = "Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since,"\
                         " Origin, X-GitHub-OTP, X-Requested-With, Content-Checksum"
     __allowed_methods = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
@@ -139,6 +143,12 @@ class Router(TemplateView):
             response = Response(None, status=503)
         finally:
             if type(response) == Response:
+                self.call_response_callback(
+                    response=response, method=request.method, route=self.__route, url=self.__uri,
+                    url_params_like=self.__url_params_like, url_params=self.__url_params, body=request.body,
+                    app_name=routes['app_name'], auth_data=routes.get('auth_data'),
+                    client_ips=self.get_client_ip(request.META)
+                )
                 return self.set_response_headers(response.render(indent))
             else:
                 return self.set_response_headers(response)
@@ -149,6 +159,8 @@ class Router(TemplateView):
         :param actual_params dict
         :rtype: Response or object
         """
+        self.__url_params_like = str()
+        self.__url_params = dict()
         if self.__method.lower() in self.__bound_routes:
             for bound in self.__bound_routes[self.__method.lower()]:
 
@@ -163,6 +175,8 @@ class Router(TemplateView):
                             "%s(%d) %s" % ("body ", len(self.__request.body), self.__request.body.decode('utf-8'))
                         )
                         pattern_params = self.get_callback_pattern(expected_params, actual_params)
+                        self.__url_params_like = route
+                        self.__url_params = pattern_params
                         return bound[route](self.__request, self.__app, **pattern_params)
                     else:
                         return authenticate
@@ -176,7 +190,7 @@ class Router(TemplateView):
         else:
             return self.no_route_found(self.__request)
 
-    def request_matches_route(self, actual_route: str(), expected_route: str()):
+    def request_matches_route(self, actual_route: str, expected_route: str):
         """
         Determines whether a route matches the actual requested route or not
         :param actual_route str
@@ -370,3 +384,39 @@ class Router(TemplateView):
             self.__app[name] = handler
 
         return self
+
+    def response_callback_config(self, callback: object):
+        """
+        Sets the authenticator service.
+        :param callback object
+        :rtype: Router
+        """
+        self.__response_callback = callback
+        return self
+
+    def call_response_callback(self, **kwargs) -> bool:
+        """
+        Calls the response callback configured to this instance
+        :param kwargs: the parameters you'd like to pass
+        :rtype: bool
+        """
+        if self.__response_callback:
+            self.__response_callback.call(**kwargs)
+
+        return True
+
+    @staticmethod
+    def get_client_ip(meta: dict) -> Union[Tuple[List[str], str, str], None]:
+        """
+        Returns the client ip address from the request headers
+        Return the headers: HTTP_X_FORWARDED_FOR, HTTP_X_REAL_IP, REMOTE_ADDR
+        """
+        try:
+            ip_f = meta.get("HTTP_X_FORWARDED_FOR", None)
+            ip_list = list()
+            if ip_f:
+                ip_list: List[str] = [i.strop() for i in ip_f.split(",")]
+
+            return ip_list, meta.get("HTTP_X_REAL_IP"), meta.get("REMOTE_ADDR")
+        except (KeyError, IndexError):
+            return None
