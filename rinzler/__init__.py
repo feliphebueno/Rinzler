@@ -108,11 +108,11 @@ class Rinzler(object):
         :raises: TypeError If the callback is not a callable
         :rtype: Rinzler
         """
-        if hasattr(callback, '__call__'):
+        if hasattr(callback, 'call'):
             self.response_callback = callback
             return self
         else:
-            raise TypeError("Your callback response is not a callable")
+            raise TypeError("Your callback must have a call method")
 
 
 class Router(TemplateView):
