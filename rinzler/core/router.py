@@ -415,7 +415,7 @@ class Router(TemplateView):
             ip_f = meta.get("HTTP_X_FORWARDED_FOR", None)
             ip_list = list()
             if ip_f:
-                ip_list: List[str] = [i.strop() for i in ip_f.split(",")]
+                ip_list: List[str] = [i.strip() for i in ip_f.split(",")]
 
             return ip_list, meta.get("HTTP_X_REAL_IP"), meta.get("REMOTE_ADDR")
         except (KeyError, IndexError):
