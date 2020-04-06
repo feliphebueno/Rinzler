@@ -1,4 +1,8 @@
 
+Version 2.2.1:
+Update 2.2.0
+- Bug fix in rinzler.__init__.py
+
 Version 2.2.0:
 Update 2.1.1
 - Added response callback
