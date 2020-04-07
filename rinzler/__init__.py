@@ -6,7 +6,7 @@ from typing import Union, Tuple, List, Dict
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.2.1"
+__version__ = "2.2.2"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 import os

@@ -1,4 +1,8 @@
 
+Version 2.2.2:
+Update 2.2.1
+- Update django from 2.2.9 to 2.2.12
+
 Version 2.2.1:
 Update 2.2.0
 - Bug fix in rinzler.__init__.py
