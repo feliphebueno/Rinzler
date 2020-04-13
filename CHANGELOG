@@ -1,4 +1,8 @@
 
+Version 2.2.3:
+Update 2.2.2
+- Fixed possible memory leaking across requests from the same name_space
+
 Version 2.2.2:
 Update 2.2.1
 - Update django from 2.2.9 to 2.2.12
