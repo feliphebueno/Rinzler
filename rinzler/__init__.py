@@ -173,11 +173,6 @@ class Router(TemplateView):
             response = Response(None, status=500)
         finally:
             if type(response) == Response:
-                self.app.log.info(
-                    f"{uri} -> rin_id: {id(self.app)}, req_id: {id(request)}, "
-                    f"uri_id: {id(uri)}, url_pl_id: {id(url_params_like)}, "
-                    f"url_p_id: {id(url_params)}, body_id: {id(request.body)}")
-
                 self.call_response_callback(
                     response=response, method=request.method, route=self.__route, url=uri,
                     url_params_like=url_params_like, url_params=url_params, body=request.body,
