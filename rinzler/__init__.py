@@ -1,12 +1,12 @@
 """
 Main
 """
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, List, Dict, Any
 
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.2.2"
+__version__ = "2.2.3"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 import os
@@ -121,16 +121,11 @@ class Router(TemplateView):
     """
     app: Rinzler = None
     __request_start: datetime = None
-    __request: HttpRequest = None
     __controller: callable = None
     __route = str()
     __end_point_uri = str()
-    __uri = str()
-    __method = str()
     __end_points = dict()
     __auth_service: BaseAuthService = None
-    __url_params_like = str()
-    __url_params: Dict[str, str] = dict()
 
     def __init__(self, app: Rinzler, route, controller):
         super(Router, self).__init__()
@@ -147,23 +142,23 @@ class Router(TemplateView):
         :rtype: HttpResponse
         """
         self.__request_start = datetime.now()
-        self.__request = request
-        self.__uri = request.path[1:]
-        self.__method = request.method
+        uri = request.path[1:]
 
-        # Initializes the callable controller and call it's connect method to get the mapped end-points.
+        # Initializes the callable controller and calls its connect method to get the mapped end-points.
         controller: RouteMapping = self.__controller().connect(self.app)
 
         self.__end_points = controller.get_routes()
 
         indent = self.get_json_ident(request.META)
 
-        if self.set_end_point_uri() is False:
-            return self.set_response_headers(self.no_route_found(self.__request).render(indent))
+        if self.set_end_point_uri(uri) is False:
+            return self.set_response_headers(self.no_route_found(request, uri).render(indent))
 
         response = HttpResponse(None)
+        url_params_like = str()
+        url_params: Dict[str, str] = dict()
         try:
-            response = self.exec_route_callback()
+            response, url_params_like, url_params = self.exec_route_callback(request, uri)
         except RinzlerHttpException as e:
             client.captureException()
             self.app.log.error(f"< {e.status_code}", exc_info=True)
@@ -179,8 +174,8 @@ class Router(TemplateView):
         finally:
             if type(response) == Response:
                 self.call_response_callback(
-                    response=response, method=request.method, route=self.__route, url=self.__uri,
-                    url_params_like=self.__url_params_like, url_params=self.__url_params, body=request.body,
+                    response=response, method=request.method, route=self.__route, url=uri,
+                    url_params_like=url_params_like, url_params=url_params, body=request.body,
                     app_name=self.app.app_name, auth_data=self.app.auth_data,
                     client_ips=self.get_client_ip(request.META)
                 )
@@ -188,45 +183,44 @@ class Router(TemplateView):
             else:
                 return self.set_response_headers(response)
 
-    def exec_route_callback(self) -> Response or object:
+    def exec_route_callback(self, request: HttpRequest, uri: str) -> Tuple[Union[Response, object], Any, Any]:
         """
         Executes the resolved end-point callback, or its fallback
+        :param request: HttpRequest actual request, coming from Django
+        :param uri: str url of the actual request
         :rtype: Response or object
         """
-        self.__url_params_like = str()
-        self.__url_params = dict()
-        if self.__method.lower() in self.__end_points:
-            for bound in self.__end_points[self.__method.lower()]:
+        method = request.method
+        if method.lower() in self.__end_points:
+            for bound in self.__end_points[method.lower()]:
 
                 route = list(bound)[0]
                 expected_params = self.get_url_params(route)
                 actual_params = self.get_url_params(self.get_end_point_uri())
 
                 if self.request_matches_route(self.get_end_point_uri(), route):
-                    self.app.log.info("> {0} {1}".format(self.__method, self.__uri))
-                    if self.authenticate(route, actual_params):
+                    self.app.log.info("> {0} {1}".format(method, uri))
+                    if self.authenticate(route, actual_params, request):
                         self.app.log.debug(
-                            "%s(%d) %s" % ("body ", len(self.__request.body), self.__request.body.decode('utf-8'))
+                            "%s(%d) %s" % ("body ", len(request.body), request.body.decode('utf-8'))
                         )
                         pattern_params = self.get_callback_pattern(expected_params, actual_params)
                         self.app.request_handle_time = (
                             lambda d: int((d.days * 24 * 60 * 60 * 1000) + (d.seconds * 1000) + (d.microseconds / 1000))
                         )(datetime.now() - self.__request_start)
-                        self.__url_params_like = route
-                        self.__url_params = pattern_params
 
-                        return bound[route](self.__request, self.app, **pattern_params)
+                        return bound[route](request, self.app, **pattern_params), route, pattern_params
                     else:
                         raise AuthException("Authentication failed.")
 
-        if self.__method == "OPTIONS":
-            self.app.log.info("Route matched: {0} {1}".format(self.__method, self.__uri))
-            return self.default_route_options()
+        if method == "OPTIONS":
+            self.app.log.info("Route matched: {0} {1}".format(method, uri))
+            return self.default_route_options(), None, None
 
-        if self.__route == '' and self.__uri == '':
-            return self.welcome_page()
+        if self.__route == '' and uri == '':
+            return self.welcome_page(), None, None
         else:
-            return self.no_route_found(self.__request)
+            return self.no_route_found(request, uri), None, None
 
     def request_matches_route(self, actual_route: str, expected_route: str):
         """
@@ -250,16 +244,17 @@ class Router(TemplateView):
 
         return True
 
-    def authenticate(self, bound_route, actual_params) -> bool:
+    def authenticate(self, bound_route, actual_params, request: HttpRequest) -> bool:
         """
-        Runs the pre-defined authenticaton service
+        Runs the pre-defined authentication service
         :param bound_route str route matched
         :param actual_params dict actual url parameters
+        :param request: HttpRequest request, coming from Django
         :rtype: bool
         """
         if self.__auth_service is not None:
-            auth_route = "{0}_{1}{2}".format(self.__method, self.__route, bound_route)
-            auth_data = self.__auth_service.authenticate(self.__request, auth_route, actual_params)
+            auth_route = "{0}_{1}{2}".format(request.method, self.__route, bound_route)
+            auth_data = self.__auth_service.authenticate(request, auth_route, actual_params)
             if auth_data is True:
                 self.app.auth_data = self.__auth_service.auth_data
             else:
@@ -311,38 +306,40 @@ class Router(TemplateView):
         """
         return self.__end_point_uri
 
-    def set_end_point_uri(self) -> bool:
+    def set_end_point_uri(self, uri: str) -> bool:
         """
         Extracts the route from the accessed URL and sets it to __end_point_uri
+        :params uri: url of the actual request
         :rtype: bool
         """
         expected_parts = self.__route.split("/")
-        actual_parts = self.__uri.split("/")
+        actual_parts = uri.split("/")
 
         i = 0
         for part in expected_parts:
             if part != actual_parts[i]:
                 return False
-            i = i + 1
+            i += 1
 
         uri_prefix = len(self.__route)
-        self.__end_point_uri = self.__uri[uri_prefix:]
+        self.__end_point_uri = uri[uri_prefix:]
         return True
 
-    def no_route_found(self, request):
+    def no_route_found(self, request, uri: str):
         """
         Default callback for route not found
         :param request HttpRequest
+        :param uri: str
         :rtype: Response
         """
         response_obj = OrderedDict()
         response_obj["status"] = False
         response_obj["exceptions"] = {
-            "message": "No route found for {0} {1}".format(self.__method, self.__uri),
+            "message": "No route found for {0} {1}".format(request.method, uri),
         }
         response_obj["request"] = {
-            "method": self.__method,
-            "path_info": self.__uri,
+            "method": request.method,
+            "path_info": uri,
             "content": request.body.decode("utf-8")
         }
         response_obj["message"] = "We are sorry, but something went terribly wrong."
