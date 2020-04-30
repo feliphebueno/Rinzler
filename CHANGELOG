@@ -1,4 +1,8 @@
 
+Version 1.24.5:
+Update 1.24.4
+Bug, when not setting a callback response
+
 Version 1.24.4:
 Update 1.24.3
 Fixed possible memory leaking across requests from the same name_space
