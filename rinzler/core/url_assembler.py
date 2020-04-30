@@ -11,7 +11,7 @@ class UrlAssembler(object):
     base_path = str()
     logger = object
     app_name = str()
-    response_callback = object
+    response_callback = None
 
     def mount(self, route, callback):
         """
