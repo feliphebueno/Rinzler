@@ -1,4 +1,8 @@
 
+Version 1.24.6:
+Update 1.24.5
+Fixed token memory leaking when calling callback response
+
 Version 1.24.5:
 Update 1.24.4
 Bug, when not setting a callback response
