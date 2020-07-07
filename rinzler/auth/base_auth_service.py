@@ -8,7 +8,7 @@ class BaseAuthService(object):
     """
     BaseAuthService
     """
-    auth_data: object = {}  # Your authenticated data goes here
+    auth_data: dict = {}  # Your authenticated data goes here
 
     def authenticate(self, request: HttpRequest, auth_route: str, actual_params: dict) -> bool:
         """

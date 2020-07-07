@@ -1,4 +1,8 @@
 
+Version 2.2.4:
+Update 2.2.3
+- Fixed token memory leaking when calling callback response
+
 Version 2.2.3:
 Update 2.2.2
 - Fixed possible memory leaking across requests from the same name_space

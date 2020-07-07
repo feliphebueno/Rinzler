@@ -6,7 +6,7 @@ from typing import Union, Tuple, List, Dict, Any
 from django.core.exceptions import RequestDataTooBig
 
 __name__ = "Rinzler REST Framework"
-__version__ = "2.2.3"
+__version__ = "2.2.4"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 
 import os
@@ -154,11 +154,12 @@ class Router(TemplateView):
         if self.set_end_point_uri(uri) is False:
             return self.set_response_headers(self.no_route_found(request, uri).render(indent))
 
+        actual_params = self.get_url_params(self.get_end_point_uri())
         response = HttpResponse(None)
         url_params_like = str()
         url_params: Dict[str, str] = dict()
         try:
-            response, url_params_like, url_params = self.exec_route_callback(request, uri)
+            response, url_params_like, url_params = self.exec_route_callback(request, uri, actual_params)
         except RinzlerHttpException as e:
             client.captureException()
             self.app.log.error(f"< {e.status_code}", exc_info=True)
@@ -176,18 +177,22 @@ class Router(TemplateView):
                 self.call_response_callback(
                     response=response, method=request.method, route=self.__route, url=uri,
                     url_params_like=url_params_like, url_params=url_params, body=request.body,
-                    app_name=self.app.app_name, auth_data=self.app.auth_data,
+                    app_name=self.app.app_name,
+                    auth_data=self.get_authentication_data(url_params_like, actual_params, request),
                     client_ips=self.get_client_ip(request.META)
                 )
                 return self.set_response_headers(response.render(indent))
             else:
                 return self.set_response_headers(response)
 
-    def exec_route_callback(self, request: HttpRequest, uri: str) -> Tuple[Union[Response, object], Any, Any]:
+    def exec_route_callback(
+            self, request: HttpRequest, uri: str, actual_params: List[str]
+    ) -> Tuple[Union[Response, object], Any, Any]:
         """
         Executes the resolved end-point callback, or its fallback
         :param request: HttpRequest actual request, coming from Django
         :param uri: str url of the actual request
+        :param actual_params: List[str]
         :rtype: Response or object
         """
         method = request.method
@@ -196,7 +201,6 @@ class Router(TemplateView):
 
                 route = list(bound)[0]
                 expected_params = self.get_url_params(route)
-                actual_params = self.get_url_params(self.get_end_point_uri())
 
                 if self.request_matches_route(self.get_end_point_uri(), route):
                     self.app.log.info("> {0} {1}".format(method, uri))
@@ -262,6 +266,24 @@ class Router(TemplateView):
 
         return True
 
+    def get_authentication_data(self, bound_route, actual_params, request: HttpRequest) -> Union[dict, None]:
+        """
+        Runs the pre-defined authentication service
+        :param bound_route str route matched
+        :param actual_params dict actual url parameters
+        :param request: HttpRequest request, coming from Django
+        :rtype: bool
+        """
+        if self.__auth_service is not None and bound_route:
+            auth_route = "{0}_{1}{2}".format(request.method, self.__route, bound_route)
+            auth_data = self.__auth_service.authenticate(request, auth_route, actual_params)
+            if auth_data is True:
+                return self.__auth_service.auth_data
+            else:
+                return None
+
+        return None
+
     @staticmethod
     def get_callback_pattern(expected_params, actual_params):
         """
@@ -270,7 +292,7 @@ class Router(TemplateView):
         :param actual_params dict actual url parameters
         :rtype: dict
         """
-        pattern = dict()
+        pattern = {}
         key = 0
         for exp_param in expected_params:
             if exp_param[0] == '{' and exp_param[-1:] == '}':
@@ -279,7 +301,7 @@ class Router(TemplateView):
         return pattern
 
     @staticmethod
-    def get_url_params(end_point: str) -> list:
+    def get_url_params(end_point: str) -> List[str]:
         """
         Gets route parameters as dictionary
         :param end_point str target route
