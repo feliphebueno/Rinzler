@@ -46,6 +46,7 @@ class Router(TemplateView):
 
     def __init__(self, route, controller):
         super(Router, self).__init__()
+        self.__app = {}
         self.__route = route
         self.__callable = controller
 
@@ -135,7 +136,8 @@ class Router(TemplateView):
                 self.call_response_callback(
                     response=response, method=request.method, route=self.__route, url=uri,
                     url_params_like=__url_params_like, url_params=__url_params, body=request.body,
-                    app_name=routes['app_name'], auth_data=routes.get('auth_data'),
+                    app_name=routes['app_name'],
+                    auth_data=self.get_authentication_data(__url_params_like, actual_params, request),
                     client_ips=self.get_client_ip(request.META)
                 )
                 return self.set_response_headers(response.render(indent))
@@ -215,6 +217,20 @@ class Router(TemplateView):
             self.__app['auth_data'] = auth_data
 
         return True
+
+    def get_authentication_data(self, bound_route, actual_params, request: HttpRequest) -> object:
+        """
+        Returns the authentication data from the request
+        :param bound_route str route matched
+        :param request: HttpRequest actual request, coming from Django
+        :param actual_params dict actual url parameters
+        :rtype: object
+        """
+        if self.__auth_service is not None and bound_route:
+            auth_route = "{0}_{1}{2}".format(request.method, self.__route, bound_route)
+            return self.__auth_service.authenticate(request, auth_route, actual_params)
+
+        return None
 
     @staticmethod
     def get_callback_pattern(expected_params, actual_params):
