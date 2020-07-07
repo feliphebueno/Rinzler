@@ -164,9 +164,6 @@ class Router(TemplateView):
                     self.__app['log'].info("> {0} {1}".format(request.method, uri))
                     authenticate = self.authenticate(route, actual_params, request)
                     if authenticate:
-                        self.__app['log'].debug(
-                            "%s(%d) %s" % ("body ", len(request.body), request.body.decode('utf-8'))
-                        )
                         pattern_params = self.get_callback_pattern(expected_params, actual_params)
                         return bound[route](request, self.__app, **pattern_params), route, pattern_params
                     else:
