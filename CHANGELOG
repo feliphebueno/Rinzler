@@ -1,4 +1,8 @@
 
+Version 1.24.7:
+Update 1.24.6
+Removed Debug logs
+
 Version 1.24.6:
 Update 1.24.5
 Fixed token memory leaking when calling callback response
