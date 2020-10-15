@@ -2,3 +2,6 @@ Django==2.1.15
 pytz==2018.5
 PyYAML==3.13
 raven==6.9.0
+setuptools==40.6.2
+wheel==0.35.1
+twine==3.2.0
