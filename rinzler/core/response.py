@@ -5,6 +5,8 @@ __author__ = "Rinzler<github.com/feliphebueno>"
 
 import json
 from collections import OrderedDict
+
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http.response import HttpResponse
 
 
@@ -45,12 +47,12 @@ class Response(object):
     def __str__(self):
         if self.__indent > 0:
             if self.__content is not None:
-                return json.dumps(self.__content, indent=self.__indent, sort_keys=False)
+                return json.dumps(self.__content, indent=self.__indent, sort_keys=False, cls=DjangoJSONEncoder)
             else:
                 return str()
         else:
             if self.__content is not None:
-                return json.dumps(self.__content, sort_keys=False)
+                return json.dumps(self.__content, sort_keys=False, cls=DjangoJSONEncoder)
             else:
                 return str()
 

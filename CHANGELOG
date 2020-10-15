@@ -1,4 +1,9 @@
 
+Version 2.2.5:
+Update 2.2.4
+- Add django.core.serializers.json.DjangoJSONEncoder on Response content serialization in order to provide
+out-of-the-box JSON serialization of complex objects such as datetime, Decimal, et cetera
+
 Version 2.2.4:
 Update 2.2.3
 - Fixed token memory leaking when calling callback response
