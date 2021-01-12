@@ -4,7 +4,7 @@ from .logger.log import setup_logging
 from .core.url_assembler import UrlAssembler
 
 __name__ = "Rinzler REST Framework"
-__version__ = "1.24.11"
+__version__ = "1.24.12"
 __author__ = "Rinzler"
 
 
