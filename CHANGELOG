@@ -1,4 +1,8 @@
 
+Version 1.24.10:
+Update 1.24.8
+Update requirements (update PyYaml and Django)
+
 Version 1.24.8:
 Update 1.24.7
 Fixed (You cannot access body after reading from request's data stream) Exception
