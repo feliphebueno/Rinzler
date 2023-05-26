@@ -80,7 +80,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['Django==2.2.17', 'PyYAML==5.3.1', 'raven==6.9.0'],
+    install_requires=['Django', 'PyYAML', 'raven==6.9.0'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

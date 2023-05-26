@@ -1,7 +1,7 @@
-Django==2.2.17
+Django==2.2.29
 pytz==2018.5
-PyYAML==5.3.1
+PyYAML==5.4.1
 raven==6.9.0
-setuptools==40.6.2
-wheel==0.35.1
+setuptools==65.5.1
+wheel==0.38.4
 twine==3.2.0
