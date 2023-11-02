@@ -1,94 +1,85 @@
 """
 End-point to callback mapper
 """
-__author__ = "Rinzler<github.com/feliphebueno>"
+from typing import Dict
 
 
-class RouteMapping(object):
+class RouteMapping:
     """
     RouteMapping
     """
-    __routes = dict()
+
+    __routes = {}
 
     def __init__(self):
-        self.__routes = dict()
+        self.__routes = {}
 
-    def get(self, route: str, callback: object()):
+    def get(self, route: str, callback: callable) -> None:
         """
-        Binds a GET route with the given callback 
-        :rtype: object
+        Binds a GET route with the given callback
         """
-        self.__set_route('get', {route: callback})
-        return RouteMapping
+        self.__set_route("get", {route: callback})
 
-    def post(self, route: str, callback: object()):
+    def post(self, route: str, callback: callable) -> None:
         """
         Binds a POST route with the given callback
-        :rtype: object
         """
-        self.__set_route('post', {route: callback})
-        return RouteMapping
+        self.__set_route("post", {route: callback})
 
-    def put(self, route: str, callback: object()):
+    def put(self, route: str, callback: callable) -> None:
         """
         Binds a PUT route with the given callback
-        :rtype: object
         """
-        self.__set_route('put', {route: callback})
-        return RouteMapping
+        self.__set_route("put", {route: callback})
 
-    def patch(self, route: str, callback: object()):
+    def patch(self, route: str, callback: callable) -> None:
         """
         Binds a PATCH route with the given callback
-        :rtype: object
         """
-        self.__set_route('patch', {route: callback})
-        return RouteMapping
+        self.__set_route("patch", {route: callback})
 
-    def delete(self, route: str, callback: object()):
+    def delete(self, route: str, callback: callable) -> None:
         """
         Binds a PUT route with the given callback
-        :rtype: object
         """
-        self.__set_route('delete', {route: callback})
-        return RouteMapping
+        self.__set_route("delete", {route: callback})
 
-    def head(self, route: str, callback: object()):
+    def head(self, route: str, callback: callable) -> None:
         """
         Binds a HEAD route with the given callback
-        :rtype: object
         """
-        self.__set_route('head', {route: callback})
-        return RouteMapping
+        self.__set_route("head", {route: callback})
 
-    def options(self, route: str, callback: object()):
+    def options(self, route: str, callback: callable) -> None:
         """
         Binds a OPTIONS route with the given callback
-        :rtype: object
         """
-        self.__set_route('options', {route: callback})
-        return RouteMapping
+        self.__set_route("options", {route: callback})
 
-    def __set_route(self, type_route, route):
+    def __set_route(self, http_method: str, route: Dict[str, callable]):
         """
-        Sets the given type_route and route to the route mapping
-        :rtype: object
+        Sets the given http_method and route to the route mapping: path -> callback
         """
-        if type_route in self.__routes:
-            if not self.verify_route_already_bound(type_route, route):
-                self.__routes[type_route].append(route)
-        else:
-            self.__routes[type_route] = [route]
-        return RouteMapping
+        if self.verify_route_already_bound(http_method, route):
+            return
 
-    def verify_route_already_bound(self, type_route: str, route: dict) -> bool:
-        """
+        if http_method not in self.__routes:
+            self.__routes[http_method] = [route]
+            return
 
-        :param type_route: str
+        self.__routes[http_method].append(route)
+
+    def verify_route_already_bound(self, http_method: str, route: dict) -> bool:
+        """
+        Checks whether or not a route is already bound to the given type_route
+        :param http_method: str
         :param route: dict
         :return: bool
         """
-        for bound_route in self.__routes[type_route]:
+        if http_method not in self.__routes:
+            return False
+
+        for bound_route in self.__routes[http_method]:
             bound_key = list(bound_route.keys())[0]
             route_key = list(route.keys())[0]
             if bound_key == route_key:
@@ -100,11 +91,3 @@ class RouteMapping(object):
         :rtype: dict
         """
         return self.__routes
-
-    def flush_routes(self):
-        """
-
-        :return: self\
-        """
-        self.__routes = dict()
-        return self

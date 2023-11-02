@@ -5,12 +5,11 @@ and PUTs it back to the server, when meanwhile a third party has modified the st
 """
 from rinzler.exceptions import RinzlerHttpException
 
-__author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
-
 
 class PreconditionRequiredException(RinzlerHttpException):
     """
     PreconditionRequiredException
     """
+
     status_code = 428
     exception_name = "Precondition Required"

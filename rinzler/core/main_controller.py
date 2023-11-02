@@ -1,9 +1,3 @@
-"""
-Rinzler's default controller for welcome page
-"""
-
-__author__ = "Rinzler<github.com/feliphebueno>"
-
 from django.views.generic import TemplateView
 
 from rinzler import Rinzler
@@ -12,7 +6,7 @@ from rinzler.core.route_mapping import RouteMapping
 
 class MainController(TemplateView):
     """
-    Default main controller
+    Rinzler's default controller for welcome page
     """
 
     @staticmethod

@@ -4,11 +4,12 @@ Base service for authenticating rinzler's requests
 from django.http.request import HttpRequest
 
 
-class BaseAuthService(object):
+class BaseAuthService:
     """
     BaseAuthService
     """
-    auth_data: dict = {}  # Your authenticated data goes here
+
+    auth_data = {}  # Your authenticated data goes here
 
     def authenticate(self, request: HttpRequest, auth_route: str, actual_params: dict) -> bool:
         """

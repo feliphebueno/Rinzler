@@ -4,12 +4,11 @@ specified values by the app
 """
 from rinzler.exceptions import RinzlerHttpException
 
-__author__ = "Rinzler<github.com/feliphebueno>"
-
 
 class InvalidInputException(RinzlerHttpException):
     """
     InvalidInputException
     """
+
     status_code = 400
     exception_name = "Bad Request"

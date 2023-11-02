@@ -1,23 +1,18 @@
-"""
-Interface for HttpResponse
-"""
-__author__ = "Rinzler<github.com/feliphebueno>"
-
 import json
-from collections import OrderedDict
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http.response import HttpResponse
 
 
-class Response(object):
+class Response:
     """
-    Response
+    Interface for HttpResponse
     """
-    __content = OrderedDict
-    __content_type = str()
-    __charset = str()
-    __kwargs = dict
+
+    __content = {}
+    __content_type = ""
+    __charset = ""
+    __kwargs = {}
     __indent = 0
 
     def __init__(self, content, content_type="application/json", charset="utf-8", **kwargs):
@@ -40,21 +35,24 @@ class Response(object):
         :rtype: HttpResponse
         """
         self.__indent = indent
-        return HttpResponse(
-            str(self), content_type=self.__content_type, charset=self.__charset, **self.__kwargs
-        )
+        return HttpResponse(str(self), content_type=self.__content_type, charset=self.__charset, **self.__kwargs)
 
     def __str__(self):
         if self.__indent > 0:
             if self.__content is not None:
-                return json.dumps(self.__content, indent=self.__indent, sort_keys=False, cls=DjangoJSONEncoder)
+                return json.dumps(
+                    self.__content,
+                    indent=self.__indent,
+                    sort_keys=False,
+                    cls=DjangoJSONEncoder,
+                )
             else:
-                return str()
+                return ""
         else:
             if self.__content is not None:
                 return json.dumps(self.__content, sort_keys=False, cls=DjangoJSONEncoder)
             else:
-                return str()
+                return ""
 
     def __repr__(self):
         return self.__str__()
