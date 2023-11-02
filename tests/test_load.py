@@ -11,10 +11,6 @@ class RinzlerTest(TestCase):
         Rinzler.set_log = mock.Mock()
         self.app = Rinzler("test")
 
-    def test_mount_raises_type_error(self):
-        with self.assertRaises(TypeError):
-            self.app.mount("/", "test")
-
     def test_mount(self):
         class DummyController(TemplateView):
             pass

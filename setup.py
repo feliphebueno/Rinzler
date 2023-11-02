@@ -32,5 +32,5 @@ setup(
     keywords="rest, api, framework, django",
     packages=find_packages(exclude=["contrib", "docs", "tests*"]),
     python_requires=">=3.8",
-    install_requires=["Django~=3.2", "PyYAML>=6.0.1"],
+    install_requires=["setuptools==68.2.2", "Django~=3.2", "PyYAML>=6.0.1"],
 )

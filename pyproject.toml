@@ -4,3 +4,6 @@
 [tool.flake8]
     max-line-length = 120
     exclude = ".tox,.git,*/migrations/*,*/static/CACHE/*,docs,venv"
+
+[build-system]
+requires = ["setuptools==68.2.2", "Django~=3.2", "PyYAML>=6.0.1"]

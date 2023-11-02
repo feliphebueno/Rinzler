@@ -4,3 +4,4 @@ setuptools==68.2.2
 wheel==0.41.2
 twine==4.0.2
 tox==4.11.3
+pytest==7.4.2
