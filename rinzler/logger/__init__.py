@@ -38,7 +38,7 @@ default_config = {
         },
     },
     "root": {
-        "level": "INFO",
+        "level": "INFO",  # TODO: REDUCE TO DEBUG
         "handlers": [
             "console",
             "info_file_handler",
