@@ -74,12 +74,6 @@ class Router(View):
             self.app.log.error("< 500", exc_info=True)
             response = Response(None, status=500)
         finally:
-            response = (
-                self.set_response_headers(response.render(indent))
-                if isinstance(response, Response)
-                else self.set_response_headers(response)
-            )
-
             self.call_response_callback(
                 response=response,
                 method=request.method,
@@ -92,6 +86,9 @@ class Router(View):
                 auth_data=self.get_authentication_data(url_params_like, actual_params, request),
                 client_ips=self.get_client_ip(request.META),
             )
+
+            response_body = response.render(indent) if isinstance(response, Response) else response
+            response = self.set_response_headers(response_body)
 
         return response
 
