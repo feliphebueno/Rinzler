@@ -348,7 +348,7 @@ class Router(View):
         :param kwargs: the parameters you'd like to pass
         :rtype: bool
         """
-        if getattr(self.app, "response_callback"):
+        if getattr(self.app, "response_callback", None):
             self.app.response_callback.call(**kwargs)
 
         return True
