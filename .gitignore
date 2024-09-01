@@ -17,3 +17,4 @@ venv/
 .cache
 .DS_Store
 .idea
+.python-version
