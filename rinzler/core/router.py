@@ -42,11 +42,12 @@ class Router(View):
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """
         Prepares for the CallBackResolver and handles the response and exceptions
-        Overrides Django's native View.dispatch method to prevent calls to get/post/put/delete/etc methods as those will
-        be handled by the CallBackResolver
+        :param request HttpRequest
+        :rtype: HttpResponse
         """
         self.__request_start = datetime.now()
         uri = request.path[1:]
+        route_path = f"{request.method} {uri}"
 
         # Initializes the callable controller and calls its connect method to get the mapped end-points.
         controller: RouteMapping = self.controller().connect(self.app)
@@ -65,13 +66,13 @@ class Router(View):
         try:
             response, url_params_like, url_params = self.exec_route_callback(request, uri, actual_params)
         except RinzlerHttpException as e:
-            self.app.log.exception(f"< {e.status_code}")
+            self.app.log.exception(f"< {e.status_code} {route_path}")
             response = Response(None, status=e.status_code)
         except RequestDataTooBig:
-            self.app.log.exception("< 413")
+            self.app.log.exception(f"< 413 {route_path}")
             response = Response(None, status=413)
         except BaseException:
-            self.app.log.error("< 500", exc_info=True)
+            self.app.log.exception(f"< 500 {route_path}")
             response = Response(None, status=500)
         finally:
             self.call_response_callback(
@@ -110,20 +111,21 @@ class Router(View):
 
                 if self.request_matches_route(self.get_end_point_uri(), route):
                     self.app.log.info("> {0} {1}".format(method, uri))
-                    if self.authenticate(route, actual_params, request):
-                        self.app.log.debug("%s(%d) %s" % ("body ", len(request.body), request.body.decode("utf-8")))
-                        pattern_params = self.get_callback_pattern(expected_params, actual_params)
-                        self.app.request_handle_time = (
-                            lambda d: int((d.days * 24 * 60 * 60 * 1000) + (d.seconds * 1000) + (d.microseconds / 1000))
-                        )(datetime.now() - self.__request_start)
 
-                        return (
-                            bound[route](request, self.app, **pattern_params),
-                            route,
-                            pattern_params,
-                        )
-                    else:
+                    if not self.authenticate(route, actual_params, request):
                         raise AuthException("Authentication failed.")
+
+                    self.app.log.debug("%s(%d) %s" % ("body ", len(request.body), request.body.decode("utf-8")))
+                    pattern_params = self.get_callback_pattern(expected_params, actual_params)
+                    self.app.request_handle_time = (
+                        lambda d: int((d.days * 24 * 60 * 60 * 1000) + (d.seconds * 1000) + (d.microseconds / 1000))
+                    )(datetime.now() - self.__request_start)
+
+                    return (
+                        bound[route](request, self.app, **pattern_params),
+                        route,
+                        pattern_params,
+                    )
 
         if method == "OPTIONS":
             self.app.log.info("Route matched: {0} {1}".format(method, uri))
@@ -145,14 +147,14 @@ class Router(View):
         actual_params = self.get_url_params(actual_route)
         i = 0
 
-        if len(expected_params) == len(actual_params):
-            for param in actual_params:
-                if expected_params[i][0] != "{":
-                    if param != expected_params[i]:
-                        return False
-                i += 1
-        else:
+        if len(expected_params) != len(actual_params):
             return False
+
+        for param in actual_params:
+            if expected_params[i][0] != "{":
+                if param != expected_params[i]:
+                    return False
+            i += 1
 
         return True
 
@@ -164,14 +166,14 @@ class Router(View):
         :param request: HttpRequest request, coming from Django
         :rtype: bool
         """
-        if self.__auth_service is not None:
-            auth_route = "{0}_{1}{2}".format(request.method, self.route, bound_route)
-            auth_data = self.__auth_service.authenticate(request, auth_route, actual_params)
-            if auth_data is True:
-                self.app.auth_data = self.__auth_service.auth_data
-            else:
-                return False
+        if not self.__auth_service is not None:
+            return True
 
+        auth_route = f"{request.method}_{self.route}{bound_route}"
+        if not self.__auth_service.authenticate(request, auth_route, actual_params):
+            return False
+
+        self.app.auth_data = self.__auth_service.auth_data
         return True
 
     def get_authentication_data(self, bound_route, actual_params, request: HttpRequest) -> Union[dict, None]:
@@ -182,15 +184,14 @@ class Router(View):
         :param request: HttpRequest request, coming from Django
         :rtype: bool
         """
-        if self.__auth_service is not None and bound_route:
-            auth_route = "{0}_{1}{2}".format(request.method, self.route, bound_route)
-            auth_data = self.__auth_service.authenticate(request, auth_route, actual_params)
-            if auth_data is True:
-                return self.__auth_service.auth_data
-            else:
-                return None
+        if not self.__auth_service or not bound_route:
+            return None
 
-        return None
+        auth_route = f"{request.method}_{self.route}{bound_route}"
+        if not self.__auth_service.authenticate(request, auth_route, actual_params):
+            return None
+
+        return self.__auth_service.auth_data
 
     @staticmethod
     def get_callback_pattern(expected_params, actual_params):
