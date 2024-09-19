@@ -2,7 +2,7 @@
 Main
 """
 __name__ = "Rinzler REST Framework"
-__version__ = "3.0.3"
+__version__ = "3.0.4"
 __author__ = ["Rinzler<github.com/feliphebueno>", "4ndr<github.com/4ndr>"]
 __license__ = "MIT"
 

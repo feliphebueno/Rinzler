@@ -166,7 +166,7 @@ class Router(View):
         :param request: HttpRequest request, coming from Django
         :rtype: bool
         """
-        if not self.__auth_service is not None:
+        if not self.__auth_service:
             return True
 
         auth_route = f"{request.method}_{self.route}{bound_route}"
