@@ -15,6 +15,7 @@ from rinzler.auth.base_auth_service import BaseAuthService
 from rinzler.core.response import Response
 from rinzler.core.route_mapping import RouteMapping
 from rinzler.exceptions import RinzlerHttpException
+from rinzler.exceptions.not_found_exception import NotFoundException
 from rinzler.exceptions.auth_exception import AuthException
 
 
@@ -65,14 +66,17 @@ class Router(View):
         url_params: Dict[str, str] = {}
         try:
             response, url_params_like, url_params = self.exec_route_callback(request, uri, actual_params)
+        except NotFoundException as e:
+            self.app.log.info(f"{route_path} {e.status_code} ", exc_info=True)
+            response = Response(None, status=e.status_code)
         except RinzlerHttpException as e:
-            self.app.log.exception(f"< {e.status_code} {route_path}")
+            self.app.log.exception(f"{route_path} {e.status_code}")
             response = Response(None, status=e.status_code)
         except RequestDataTooBig:
-            self.app.log.exception(f"< 413 {route_path}")
+            self.app.log.exception(f"{route_path} 413")
             response = Response(None, status=413)
         except BaseException:
-            self.app.log.exception(f"< 500 {route_path}")
+            self.app.log.exception(f"{route_path} 500")
             response = Response(None, status=500)
         finally:
             self.call_response_callback(
