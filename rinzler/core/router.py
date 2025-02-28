@@ -58,14 +58,18 @@ class Router(View):
         indent = self.get_json_ident(request.META)
 
         if self.set_end_point_uri(uri) is False:
-            return self.set_response_headers(self.no_route_found(request, uri).render(indent))
+            return self.set_response_headers(
+                self.no_route_found(request, uri).render(indent)
+            )
 
         actual_params = self.get_url_params(self.get_end_point_uri())
         response = HttpResponse(None)
         url_params_like = ""
         url_params: Dict[str, str] = {}
         try:
-            response, url_params_like, url_params = self.exec_route_callback(request, uri, actual_params)
+            response, url_params_like, url_params = self.exec_route_callback(
+                request, uri, actual_params
+            )
         except NotFoundException as e:
             self.app.log.info(f"{route_path} {e.status_code} ", exc_info=True)
             response = Response(None, status=e.status_code)
@@ -88,11 +92,15 @@ class Router(View):
                 url_params=url_params,
                 body=request.body,
                 app_name=self.app.app_name,
-                auth_data=self.get_authentication_data(url_params_like, actual_params, request),
+                auth_data=self.get_authentication_data(
+                    url_params_like, actual_params, request
+                ),
                 client_ips=self.get_client_ip(request.META),
             )
 
-            response_body = response.render(indent) if isinstance(response, Response) else response
+            response_body = (
+                response.render(indent) if isinstance(response, Response) else response
+            )
             response = self.set_response_headers(response_body)
 
         return response
@@ -119,10 +127,19 @@ class Router(View):
                     if not self.authenticate(route, actual_params, request):
                         raise AuthException("Authentication failed.")
 
-                    self.app.log.debug("%s(%d) %s" % ("body ", len(request.body), request.body.decode("utf-8")))
-                    pattern_params = self.get_callback_pattern(expected_params, actual_params)
+                    self.app.log.debug(
+                        "%s(%d) %s"
+                        % ("body ", len(request.body), request.body.decode("utf-8"))
+                    )
+                    pattern_params = self.get_callback_pattern(
+                        expected_params, actual_params
+                    )
                     self.app.request_handle_time = (
-                        lambda d: int((d.days * 24 * 60 * 60 * 1000) + (d.seconds * 1000) + (d.microseconds / 1000))
+                        lambda d: int(
+                            (d.days * 24 * 60 * 60 * 1000)
+                            + (d.seconds * 1000)
+                            + (d.microseconds / 1000)
+                        )
                     )(datetime.now() - self.__request_start)
 
                     return (
@@ -180,7 +197,9 @@ class Router(View):
         self.app.auth_data = self.__auth_service.auth_data
         return True
 
-    def get_authentication_data(self, bound_route, actual_params, request: HttpRequest) -> Union[dict, None]:
+    def get_authentication_data(
+        self, bound_route, actual_params, request: HttpRequest
+    ) -> Union[dict, None]:
         """
         Runs the pre-defined authentication service
         :param bound_route str route matched
@@ -304,7 +323,11 @@ class Router(View):
         Default callback for OPTIONS request
         :rtype: Response
         """
-        return Response({"status": True, "data": "Ok"}, content_type="application/json", charset="utf-8")
+        return Response(
+            {"status": True, "data": "Ok"},
+            content_type="application/json",
+            charset="utf-8",
+        )
 
     def set_response_headers(self, response: HttpResponse) -> HttpResponse:
         """
@@ -320,6 +343,9 @@ class Router(View):
             "www-authenticate": "Bearer",
             "server-public-name": os.environ.get("SERVER_PUBLIC_NAME", "No one"),
             "user-info": "Rinzler Framework!",
+            "keepalive_timeout": 5,
+            "keepalive_requests": 50,
+            "Access-Control-Max-Age": 86400,
         }
 
         response_headers.update(self.app.default_headers)
@@ -341,7 +367,9 @@ class Router(View):
         :return: self
         """
         if "HTTP_USER_AGENT" in request_headers:
-            indent = 2 if re.match("[Mozilla]{7}", request_headers["HTTP_USER_AGENT"]) else 0
+            indent = (
+                2 if re.match("[Mozilla]{7}", request_headers["HTTP_USER_AGENT"]) else 0
+            )
         else:
             indent = 0
 
