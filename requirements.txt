@@ -1,6 +1,6 @@
 Django~=5.1
 PyYAML==6.0.2
-setuptools==75.8.2
+setuptools==78.1.1
 wheel==0.45.1
 twine==6.1.0
 tox==4.24.1
