@@ -57,7 +57,7 @@ class Router(View):
 
         indent = self.get_json_ident(request.META)
 
-        if self.set_end_point_uri(uri) is False:
+        if not self.set_end_point_uri(uri):
             return self.set_response_headers(
                 self.no_route_found(request, uri).render(indent)
             )
@@ -71,7 +71,13 @@ class Router(View):
                 request, uri, actual_params
             )
         except NotFoundException as e:
-            self.app.log.info(f"{route_path} {e.status_code} ", exc_info=True)
+            self.app.log.info(f"{route_path} {e.status_code} ")
+            response = Response(None, status=e.status_code)
+        except AuthException as e:
+            if str(e) in ("JWT não informado.", "Token inválido ou expirado."):
+                self.app.log.info(f"{e} {route_path} 403 ")
+            else:
+                self.app.log.exception(f"{route_path} {e.status_code}")
             response = Response(None, status=e.status_code)
         except RinzlerHttpException as e:
             self.app.log.exception(f"{route_path} {e.status_code}")
