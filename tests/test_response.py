@@ -5,8 +5,10 @@ The property exists because Response is handed to the response callback
 *before* `render()` is called, and until then the status only lived in
 `_Response__kwargs`. Reading a name-mangled attribute from outside the package
 is what caused the defect tracked as COR-05 in the OnyxERP tracker: a consumer
-assumed `response.status_code`, which did not exist, and the resulting
-AttributeError escaped a `finally` block and took down every request.
+assumed `response.status_code`, which did not exist. That consumer does its work
+on a background thread, so the AttributeError killed the thread instead of the
+request — the audit record was lost with nothing in the response to show for
+it.
 """
 
 import pytest

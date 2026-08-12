@@ -102,9 +102,10 @@ def test_callback_object_exposes_status_code():
     was only reachable through `_Response__kwargs`, a name-mangled attribute.
 
     A consumer moved from reading that private attribute to
-    `response.status_code`, which did not exist. Because the callback runs
-    inside dispatch's `finally` and nothing along the path catches it, the
-    AttributeError escaped and brought down every request.
+    `response.status_code`, which did not exist. That consumer hands the work to
+    a background thread, so the AttributeError killed the thread rather than the
+    request: every audited write was silently dropped while the API kept
+    answering normally.
 
     The fix exposed the property on the framework rather than pushing every
     consumer to reach into private state. This test keeps it that way.
