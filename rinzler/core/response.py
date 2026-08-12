@@ -28,6 +28,23 @@ class Response:
         self.__charset = charset
         self.__kwargs = kwargs
 
+    @property
+    def status_code(self) -> int:
+        """
+        HTTP status code this response will carry once rendered.
+
+        Exposed because consumers legitimately need the status *before*
+        `render()` is called — the response callback, for one, receives this
+        object from `Router.dispatch` while it is still a Response and not yet
+        an HttpResponse. Without this property the only way to reach the status
+        was `response._Response__kwargs`, and reading a name-mangled attribute
+        across package boundaries is how it eventually broke.
+
+        The default mirrors HttpResponse's own: no explicit status means 200.
+        :rtype: int
+        """
+        return self.__kwargs.get("status", 200)
+
     def render(self, indent=0):
         """
         Renders a HttpResponse for the ongoing request

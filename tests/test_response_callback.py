@@ -60,15 +60,13 @@ def cria_router(app, controller, route="v1") -> Router:
 
 def status_de(response) -> int:
     """
-    Extrai o status do objeto que o callback recebe.
+    Status do objeto entregue ao callback.
 
-    Precisa alcançar um atributo privado porque a `Response` do rinzler **não**
-    é um `HttpResponse`: ela só vira um em `render()`, que roda depois do
-    callback. O status fica em `_Response__kwargs` até lá. É exatamente assim
-    que o `ResponseCallbackService` do onyxerp 2.x lê — ver o teste
-    `test_o_objeto_do_callback_nao_expoe_status_code`.
+    Desde a 3.1.3 tanto a `Response` do rinzler quanto o `HttpResponse` do
+    Django expõem `status_code` — o `dispatch` pode entregar qualquer um dos
+    dois, dependendo do caminho. Ver `test_o_objeto_do_callback_expoe_status_code`.
     """
-    return getattr(response, "_Response__kwargs", {}).get("status", 200)
+    return response.status_code
 
 
 # ---------------------------------------------------------------------------
@@ -138,28 +136,22 @@ def test_callback_dispara_no_caminho_de_sucesso():
     assert status_de(payload["response"]) == 200
 
 
-def test_o_objeto_do_callback_nao_expoe_status_code():
+def test_o_objeto_do_callback_expoe_status_code():
     """
-    🔴 Contrato que já quebrou um consumidor — fixado aqui para não repetir.
+    Correção do COR-05, fixada como contrato.
 
     O `dispatch` entrega ao callback a `Response` do rinzler **antes** de
-    chamar `render()`. Essa `Response` não herda de `HttpResponse` e não tem
-    `status_code`; o status vive em `_Response__kwargs` até o render.
+    chamar `render()`. Ela não herda de `HttpResponse`, e até a 3.1.2 o status
+    só era alcançável por `_Response__kwargs` — atributo com name mangling.
 
-    O `ResponseCallbackService` do onyxerp lia isso corretamente na linha 2.x:
+    O `ResponseCallbackService` do onyxerp lia assim na linha 2.x e passou, na
+    3.x, a fazer `response.status_code`. Como o callback roda dentro do
+    `finally` do `dispatch` e não há `try/except` no caminho, o AttributeError
+    escapava e derrubava **toda** requisição.
 
-        status = response._Response__kwargs.get("status", 200)
-
-    e passou, na 3.x, a fazer:
-
-        status = response.status_code        # AttributeError
-
-    Como o callback é invocado dentro do `finally` do `dispatch`, e não há
-    `try/except` em nenhum ponto do caminho, a exceção escapa e derruba a
-    requisição inteira — em toda requisição, não só nas de escrita.
-
-    Se um dia a `Response` passar a expor `status_code`, este teste falha, e
-    a falha é o aviso de que os consumidores podem ser simplificados.
+    A correção foi expor a propriedade no framework, em vez de obrigar cada
+    consumidor a alcançar estado privado. Este teste garante que o objeto
+    entregue ao callback continua respondendo a `status_code`.
     """
     from rinzler.core.response import Response
 
@@ -174,8 +166,7 @@ def test_o_objeto_do_callback_nao_expoe_status_code():
 
     entregue = espiao.chamadas[0]["response"]
     assert isinstance(entregue, Response)
-    assert not hasattr(entregue, "status_code")
-    assert entregue._Response__kwargs.get("status", 200) == 200
+    assert entregue.status_code == 200
 
 
 def test_callback_dispara_quando_o_controller_lanca_excecao():
