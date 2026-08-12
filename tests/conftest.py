@@ -1,9 +1,9 @@
 """
-Configuração mínima de Django para a suíte.
+Minimal Django configuration for the test suite.
 
-O pacote não carrega um projeto Django, mas `Router.dispatch` lê
-`settings.DEBUG` e o `RequestFactory` exige settings configurados. Sem isto,
-qualquer teste que exercite o router estoura em ImproperlyConfigured.
+The package does not ship a Django project, but `Router.dispatch` reads
+`settings.DEBUG` and `RequestFactory` requires configured settings. Without
+this, any test exercising the router blows up with ImproperlyConfigured.
 """
 
 import django

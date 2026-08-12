@@ -1,225 +1,181 @@
 """
-Cobertura do response callback.
+Coverage for the response callback.
 
-Por que este é o primeiro teste de integração da suíte: o callback é o
-mecanismo por onde os serviços do OnyxERP reportam toda resposta à LogAPI —
-a trilha de auditoria do ecossistema. Ele é montado por
-`app.set_response_callback(...)` e invocado num `finally`, ou seja, no caminho
-de sucesso e no de erro. Se parar de disparar, a auditoria some sem lançar
-exceção e sem log: falha silenciosa.
+Why this is the suite's first integration test: the callback is how the
+OnyxERP services report every response to their logging service — the
+ecosystem's audit trail. It is registered through
+`app.set_response_callback(...)` and invoked inside a `finally`, so it runs on
+both the success and the failure path. If it stops firing, auditing disappears
+with no exception and no log entry: a silent failure.
 """
-
-from unittest import mock
 
 import pytest
 from django.test import RequestFactory
 
-from rinzler import Rinzler
-from rinzler.core.router import Router
+from tests.helpers import CallbackSpy, make_app, make_controller, make_router
 
 
-class CallbackEspiao:
-    """Dublê no formato que `set_response_callback` exige: um objeto com `call`."""
-
-    def __init__(self):
-        self.chamadas = []
-
-    def call(self, **kwargs):
-        self.chamadas.append(kwargs)
-
-    @property
-    def chamou(self) -> bool:
-        return len(self.chamadas) > 0
-
-
-def cria_app(nome="test") -> Rinzler:
-    """App com log silenciado e sem serviço de autenticação."""
-    with mock.patch.object(Rinzler, "set_log"):
-        app = Rinzler(nome)
-    app.log = mock.Mock()
-    # O Router lê `app.auth_service` no __init__; a classe só tem a anotação.
-    app.auth_service = None
-    return app
-
-
-def cria_controller(callback, metodo="get", rota="/ping"):
-    """Controller no contrato do rinzler: chamável que expõe `connect(app)`."""
-
-    class Controller:
-        def connect(self, app):
-            rotas = app.get_end_point_register()
-            getattr(rotas, metodo)(rota, callback)
-            return rotas
-
-    return Controller
-
-
-def cria_router(app, controller, route="v1") -> Router:
-    return Router(app=app, route=route, controller=controller)
-
-
-def status_de(response) -> int:
+def status_of(response) -> int:
     """
-    Status do objeto entregue ao callback.
+    Status of the object handed to the callback.
 
-    Desde a 3.1.3 tanto a `Response` do rinzler quanto o `HttpResponse` do
-    Django expõem `status_code` — o `dispatch` pode entregar qualquer um dos
-    dois, dependendo do caminho. Ver `test_o_objeto_do_callback_expoe_status_code`.
+    Since 3.1.3 both rinzler's Response and Django's HttpResponse expose
+    `status_code` — dispatch may hand over either, depending on the path.
+    See `test_callback_object_exposes_status_code`.
     """
     return response.status_code
 
 
 # ---------------------------------------------------------------------------
-# Contrato de registro
+# Registration contract
 # ---------------------------------------------------------------------------
 
 
-def test_set_response_callback_recusa_objeto_sem_metodo_call():
-    """A guarda existe para o erro não aparecer só na primeira requisição."""
-    app = cria_app()
+def test_set_response_callback_rejects_object_without_call_method():
+    """The guard exists so the error does not surface on the first request."""
+    app = make_app()
 
     with pytest.raises(TypeError, match="call method"):
         app.set_response_callback(lambda **kwargs: None)
 
 
-def test_set_response_callback_aceita_objeto_com_call_e_retorna_self():
-    app = cria_app()
-    espiao = CallbackEspiao()
+def test_set_response_callback_accepts_object_with_call_and_returns_self():
+    app = make_app()
+    spy = CallbackSpy()
 
-    assert app.set_response_callback(espiao) is app
-    assert app.response_callback is espiao
+    assert app.set_response_callback(spy) is app
+    assert app.response_callback is spy
 
 
-def test_call_response_callback_e_no_op_sem_callback_configurado():
-    """A maioria dos projetos não registra callback; isso não pode explodir."""
-    app = cria_app()
-    router = cria_router(app, cria_controller(lambda *a, **kw: None))
+def test_call_response_callback_is_a_no_op_when_none_is_registered():
+    """Most projects register no callback; that must not blow up."""
+    app = make_app()
+    router = make_router(app, make_controller(lambda *a, **kw: None))
 
     assert router.call_response_callback(response=None) is True
 
 
-def test_call_response_callback_encaminha_os_kwargs():
-    app = cria_app()
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
-    router = cria_router(app, cria_controller(lambda *a, **kw: None))
+def test_call_response_callback_forwards_its_kwargs():
+    app = make_app()
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
+    router = make_router(app, make_controller(lambda *a, **kw: None))
 
     router.call_response_callback(response="resp", method="GET")
 
-    assert espiao.chamadas == [{"response": "resp", "method": "GET"}]
+    assert spy.calls == [{"response": "resp", "method": "GET"}]
 
 
 # ---------------------------------------------------------------------------
-# Integração pelo dispatch
+# Integration through dispatch
 # ---------------------------------------------------------------------------
 
 
-def test_callback_dispara_no_caminho_de_sucesso():
+def test_callback_fires_on_the_success_path():
     from rinzler.core.response import Response
 
-    app = cria_app("social_api")
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
+    app = make_app("social_api")
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
 
-    controller = cria_controller(lambda request, app, **params: Response({"ok": True}))
-    router = cria_router(app, controller)
+    controller = make_controller(lambda request, app, **params: Response({"ok": True}))
+    router = make_router(app, controller)
 
     router.dispatch(RequestFactory().get("/v1/ping"))
 
-    assert espiao.chamou
-    (payload,) = espiao.chamadas
+    assert spy.was_called
+    (payload,) = spy.calls
     assert payload["method"] == "GET"
     assert payload["route"] == "v1"
     assert payload["url"] == "v1/ping"
     assert payload["url_params_like"] == "/ping"
     assert payload["app_name"] == "social_api"
-    assert status_de(payload["response"]) == 200
+    assert status_of(payload["response"]) == 200
 
 
-def test_o_objeto_do_callback_expoe_status_code():
+def test_callback_object_exposes_status_code():
     """
-    Correção do COR-05, fixada como contrato.
+    Contract behind the fix for COR-05, pinned here.
 
-    O `dispatch` entrega ao callback a `Response` do rinzler **antes** de
-    chamar `render()`. Ela não herda de `HttpResponse`, e até a 3.1.2 o status
-    só era alcançável por `_Response__kwargs` — atributo com name mangling.
+    Dispatch hands the callback rinzler's Response *before* calling
+    `render()`. It does not subclass HttpResponse, and up to 3.1.2 the status
+    was only reachable through `_Response__kwargs`, a name-mangled attribute.
 
-    O `ResponseCallbackService` do onyxerp lia assim na linha 2.x e passou, na
-    3.x, a fazer `response.status_code`. Como o callback roda dentro do
-    `finally` do `dispatch` e não há `try/except` no caminho, o AttributeError
-    escapava e derrubava **toda** requisição.
+    A consumer moved from reading that private attribute to
+    `response.status_code`, which did not exist. Because the callback runs
+    inside dispatch's `finally` and nothing along the path catches it, the
+    AttributeError escaped and brought down every request.
 
-    A correção foi expor a propriedade no framework, em vez de obrigar cada
-    consumidor a alcançar estado privado. Este teste garante que o objeto
-    entregue ao callback continua respondendo a `status_code`.
+    The fix exposed the property on the framework rather than pushing every
+    consumer to reach into private state. This test keeps it that way.
     """
     from rinzler.core.response import Response
 
-    app = cria_app()
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
+    app = make_app()
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
 
-    controller = cria_controller(lambda request, app, **params: Response({"ok": True}))
-    router = cria_router(app, controller)
-
-    router.dispatch(RequestFactory().get("/v1/ping"))
-
-    entregue = espiao.chamadas[0]["response"]
-    assert isinstance(entregue, Response)
-    assert entregue.status_code == 200
-
-
-def test_callback_dispara_quando_o_controller_lanca_excecao():
-    """O callback vive num `finally`: erro de aplicação também é auditado."""
-    app = cria_app()
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
-
-    def callback_que_explode(request, app, **params):
-        raise ValueError("falha proposital")
-
-    router = cria_router(app, cria_controller(callback_que_explode))
+    controller = make_controller(lambda request, app, **params: Response({"ok": True}))
+    router = make_router(app, controller)
 
     router.dispatch(RequestFactory().get("/v1/ping"))
 
-    assert espiao.chamou
-    assert status_de(espiao.chamadas[0]["response"]) == 500
+    delivered = spy.calls[0]["response"]
+    assert isinstance(delivered, Response)
+    assert delivered.status_code == 200
 
 
-def test_callback_dispara_quando_a_rota_nao_existe_dentro_do_prefixo():
-    """404 de rota não mapeada passa pelo try/finally e é auditado."""
-    app = cria_app()
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
+def test_callback_fires_when_the_controller_raises():
+    """The callback lives in a `finally`: application errors are audited too."""
+    app = make_app()
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
 
-    router = cria_router(app, cria_controller(lambda *a, **kw: None))
+    def exploding_endpoint(request, app, **params):
+        raise ValueError("deliberate failure")
 
-    router.dispatch(RequestFactory().get("/v1/rota-que-nao-existe"))
+    router = make_router(app, make_controller(exploding_endpoint))
 
-    assert espiao.chamou
-    assert status_de(espiao.chamadas[0]["response"]) == 404
+    router.dispatch(RequestFactory().get("/v1/ping"))
+
+    assert spy.was_called
+    assert status_of(spy.calls[0]["response"]) == 500
 
 
-def test_callback_NAO_dispara_quando_o_prefixo_do_mount_nao_casa():
+def test_callback_fires_for_an_unmapped_route_inside_the_prefix():
+    """A 404 from an unmapped route goes through try/finally and is audited."""
+    app = make_app()
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
+
+    router = make_router(app, make_controller(lambda *a, **kw: None))
+
+    router.dispatch(RequestFactory().get("/v1/no-such-route"))
+
+    assert spy.was_called
+    assert status_of(spy.calls[0]["response"]) == 404
+
+
+def test_callback_does_NOT_fire_when_the_mount_prefix_does_not_match():
     """
-    Lacuna conhecida da trilha de auditoria, fixada aqui como comportamento.
+    Known gap in the audit trail, pinned here as current behaviour.
 
-    Quando a URI não bate com o prefixo em que o Router foi montado, o
-    `dispatch` retorna **antes** do bloco try/finally
-    (`rinzler/core/router.py`, o `if not self.set_end_point_uri(uri)`), e o
-    callback nunca é chamado. A resposta 404 sai para o cliente sem que a
-    LogAPI receba registro nenhum.
+    When the URI does not match the prefix the Router was mounted on, dispatch
+    returns *before* the try/finally block (see the `if not
+    self.set_end_point_uri(uri)` guard in `rinzler/core/router.py`), so the
+    callback never runs. The 404 reaches the client while the logging service
+    receives nothing. Tracked as COR-06 in the OnyxERP tracker.
 
-    Se um dia isso for corrigido, é este teste que deve mudar — e a mudança
-    é intencional, não regressão.
+    If that is ever fixed, this is the test that should change — and the
+    change is intentional, not a regression.
     """
-    app = cria_app()
-    espiao = CallbackEspiao()
-    app.set_response_callback(espiao)
+    app = make_app()
+    spy = CallbackSpy()
+    app.set_response_callback(spy)
 
-    router = cria_router(app, cria_controller(lambda *a, **kw: None), route="v1")
+    router = make_router(app, make_controller(lambda *a, **kw: None), route="v1")
 
-    resposta = router.dispatch(RequestFactory().get("/outro-prefixo/ping"))
+    response = router.dispatch(RequestFactory().get("/other-prefix/ping"))
 
-    assert resposta.status_code == 404
-    assert not espiao.chamou
+    assert response.status_code == 404
+    assert not spy.was_called

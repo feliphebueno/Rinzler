@@ -1,11 +1,12 @@
 """
-Cobertura da Response — em especial do `status_code`.
+Coverage for Response, and for `status_code` in particular.
 
-A propriedade existe porque a Response é entregue ao response callback
-**antes** de `render()`, e até então o status só existia em `_Response__kwargs`.
-Ler atributo com name mangling de fora do pacote foi o que produziu o COR-05:
-o `ResponseCallbackService` do onyxerp 3.x assumiu `response.status_code`,
-que não existia, e derrubava a requisição inteira dentro de um `finally`.
+The property exists because Response is handed to the response callback
+*before* `render()` is called, and until then the status only lived in
+`_Response__kwargs`. Reading a name-mangled attribute from outside the package
+is what caused the defect tracked as COR-05 in the OnyxERP tracker: a consumer
+assumed `response.status_code`, which did not exist, and the resulting
+AttributeError escaped a `finally` block and took down every request.
 """
 
 import pytest
@@ -13,36 +14,36 @@ import pytest
 from rinzler.core.response import Response
 
 
-def test_status_code_default_e_200():
-    """Sem status explícito, o mesmo default do HttpResponse."""
+def test_status_code_defaults_to_200():
+    """No explicit status means 200, same default as HttpResponse."""
     assert Response({"ok": True}).status_code == 200
 
 
 @pytest.mark.parametrize("status", [200, 201, 204, 400, 401, 403, 404, 409, 413, 500])
-def test_status_code_reflete_o_status_informado(status):
+def test_status_code_reflects_the_given_status(status):
     assert Response(None, status=status).status_code == status
 
 
-def test_status_code_e_o_mesmo_que_o_render_produz():
+def test_status_code_matches_what_render_produces():
     """
-    O invariante que de fato importa: o valor lido antes do render tem de ser
-    o valor que o cliente recebe. Se os dois divergirem, a auditoria registra
-    um status diferente do que foi respondido.
+    The invariant that actually matters: the value read before render must be
+    the value the client receives. If they diverge, an audit trail records a
+    status different from the one that was answered.
     """
     for status in (200, 404, 500):
-        resposta = Response({"x": 1}, status=status)
-        assert resposta.status_code == resposta.render().status_code
+        response = Response({"x": 1}, status=status)
+        assert response.status_code == response.render().status_code
 
 
-def test_status_code_e_somente_leitura():
-    """Escrever aqui não teria efeito no render; melhor falhar alto."""
+def test_status_code_is_read_only():
+    """Assigning here would not affect render, so fail loudly instead."""
     with pytest.raises(AttributeError):
         Response(None, status=200).status_code = 500
 
 
-def test_render_continua_funcionando_normalmente():
-    """A propriedade não pode ter alterado o comportamento existente."""
-    renderizada = Response({"ok": True}, status=201).render()
+def test_render_still_behaves_as_before():
+    """The property must not have changed existing behaviour."""
+    rendered = Response({"ok": True}, status=201).render()
 
-    assert renderizada.status_code == 201
-    assert renderizada.content == b'{"ok": true}'
+    assert rendered.status_code == 201
+    assert rendered.content == b'{"ok": true}'
