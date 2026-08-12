@@ -1,0 +1,58 @@
+name: Publish
+
+# Dispara só em tag de versão. Publicar deixa de ser um comando na máquina de
+# alguém e passa a ser consequência de um `git push --tags`.
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build e publica no PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      # Exigido pelo trusted publishing do PyPI: o job troca um token OIDC de
+      # curta duração pelo direito de publicar. Não há senha nem API token
+      # guardados no repositório.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # Esta guarda existe por um motivo concreto, não por formalidade: a
+      # versão 3.1.1 foi publicada no PyPI a partir de um working tree sujo.
+      # O artefato saiu declarando Django~=5.2 e python_requires>=3.10,
+      # enquanto a tag 3.1.1 no git dizia ~=5.1 e >=3.8 — mesmo número de
+      # versão, conteúdos diferentes, release não reproduzível a partir do
+      # código-fonte. Aqui a tag e o __version__ têm de coincidir, e o build
+      # sai sempre de um checkout limpo.
+      - name: A tag precisa corresponder a __version__
+        run: |
+          set -euo pipefail
+          versao=$(python - <<'PY'
+          import pathlib, re
+          texto = pathlib.Path("rinzler/__init__.py").read_text()
+          print(re.search(r'__version__ = "([^"]+)"', texto).group(1))
+          PY
+          )
+          echo "tag=${GITHUB_REF_NAME}  __version__=${versao}"
+          if [ "${GITHUB_REF_NAME}" != "${versao}" ]; then
+            echo "::error::A tag ${GITHUB_REF_NAME} não corresponde a __version__ ${versao}. Alinhe os dois antes de publicar."
+            exit 1
+          fi
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check dist/*
+
+      - name: Publica no PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
