@@ -1,4 +1,43 @@
 
+Version 3.2.0:
+Update 3.1.3
+- Rinzler now reports the exceptions it swallows to OpenTelemetry.
+  `Router.dispatch` catches every exception and turns it into an HTTP response,
+  so the exception never reaches Django and automatic instrumentation cannot
+  see it: the span carried an error status from the 5xx code, but no exception
+  type, message or stack trace. All five except branches now call
+  `record_exception_on_span`.
+- Adds `opentelemetry-api` as a dependency. The API only, never the SDK — that
+  is the split OpenTelemetry prescribes for libraries. With no SDK configured
+  the current span is non-recording and every call is a no-op, so services that
+  want no telemetry get no behaviour change. Choosing an exporter, a sampler or
+  a vendor stays with the application.
+- The hook never raises: it runs inside `except` blocks, where a second
+  exception would turn a handled 500 into a dead worker. Covered by tests.
+
+Note: the entries below jump from 2.2.5 to this release. The 3.x line was
+published without changelog entries; the summary that follows was reconstructed
+from git tags and commit history, so it is shorter than it should be.
+
+Version 3.1.3:
+- Exposes `Response.status_code` as a property. Consumers were reaching into
+  the private `_Response__kwargs` to read the status, which broke whenever the
+  attribute was mangled differently.
+
+Version 3.1.2:
+- Adds the tag-triggered publish workflow, which builds from a clean checkout
+  and refuses to publish when the tag does not match `__version__`.
+
+Version 3.1.1:
+- Reduces the log level for 403 responses; bumps setuptools.
+
+Version 3.1.0:
+- Upgrades to Django 5 (RNZL-002).
+
+Version 3.0.0 to 3.0.2:
+- Reduces the log level for 404 responses, and fixes an issue in
+  `Router.authenticate`. See the git history for detail.
+
 Version 2.2.5:
 Update 2.2.4
 - Add django.core.serializers.json.DjangoJSONEncoder on Response content serialization in order to provide

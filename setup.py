@@ -33,5 +33,15 @@ setup(
     keywords="rest, api, framework, django",
     packages=find_packages(exclude=["contrib", "docs", "tests*"]),
     python_requires=">=3.10",
-    install_requires=["Django~=5.2", "PyYAML==6.0.2", "setuptools==78.1.1"],
+    # `opentelemetry-api` only, never the SDK. That is the split OpenTelemetry
+    # prescribes for libraries: Rinzler reports the exception it swallows, and
+    # the application owns the exporter, the sampler and the vendor. With no SDK
+    # configured the calls are no-ops, so services that want no telemetry pay
+    # nothing but the import.
+    install_requires=[
+        "Django~=5.2",
+        "PyYAML==6.0.2",
+        "setuptools==78.1.1",
+        "opentelemetry-api>=1.27,<2",
+    ],
 )

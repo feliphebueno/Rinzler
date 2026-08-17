@@ -18,6 +18,42 @@ from rinzler.exceptions import RinzlerHttpException
 from rinzler.exceptions.not_found_exception import NotFoundException
 from rinzler.exceptions.auth_exception import AuthException
 
+try:
+    from opentelemetry import trace as _otel_trace
+    from opentelemetry.trace import Status, StatusCode
+except ImportError:  # pragma: no cover - the package is declared, this is belt and braces
+    _otel_trace = None
+
+
+def record_exception_on_span(exc: BaseException) -> None:
+    """
+    Attach an exception to the active OpenTelemetry span, if there is one.
+
+    Rinzler catches every exception and turns it into an HTTP response, so the
+    exception never reaches Django and automatic instrumentation cannot see it.
+    The span still gets an error status from the 5xx status code, but without
+    this it carries no exception type, message or stack trace.
+
+    This is the only telemetry Rinzler emits. It depends on the OpenTelemetry
+    *API*, never the SDK: with no SDK configured the current span is
+    non-recording and every call below is a no-op. Choosing an exporter, a
+    sampler or a vendor stays with the application.
+
+    Never raises. It runs inside `except` blocks, where a second exception would
+    turn a handled 500 into a dead worker.
+    """
+    if _otel_trace is None:
+        return
+
+    try:
+        span = _otel_trace.get_current_span()
+        if not span.is_recording():
+            return
+        span.record_exception(exc)
+        span.set_status(Status(StatusCode.ERROR, str(exc)))
+    except Exception:  # noqa: BLE001 - see the docstring: this must never raise
+        pass
+
 
 class Router(View):
     """
@@ -72,21 +108,26 @@ class Router(View):
             )
         except NotFoundException as e:
             self.app.log.info(f"{route_path} {e.status_code} ")
+            record_exception_on_span(e)
             response = Response(None, status=e.status_code)
         except AuthException as e:
             if str(e) in ("JWT não informado.", "Token inválido ou expirado."):
                 self.app.log.info(f"{e} {route_path} 403 ")
             else:
                 self.app.log.exception(f"{route_path} {e.status_code}")
+            record_exception_on_span(e)
             response = Response(None, status=e.status_code)
         except RinzlerHttpException as e:
             self.app.log.exception(f"{route_path} {e.status_code}")
+            record_exception_on_span(e)
             response = Response(None, status=e.status_code)
-        except RequestDataTooBig:
+        except RequestDataTooBig as e:
             self.app.log.exception(f"{route_path} 413")
+            record_exception_on_span(e)
             response = Response(None, status=413)
-        except BaseException:
+        except BaseException as e:
             self.app.log.exception(f"{route_path} 500")
+            record_exception_on_span(e)
             response = Response(None, status=500)
         finally:
             self.call_response_callback(
