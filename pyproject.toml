@@ -6,4 +6,4 @@
     exclude = ".tox,.git,*/migrations/*,*/static/CACHE/*,docs,venv"
 
 [build-system]
-requires = ["Django~=5.2", "PyYAML==6.0.2", "setuptools==78.1.1"]
+requires = ["Django~=5.2", "PyYAML==6.0.2", "setuptools==83.0.0"]

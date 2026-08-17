@@ -41,7 +41,7 @@ setup(
     install_requires=[
         "Django~=5.2",
         "PyYAML==6.0.2",
-        "setuptools==78.1.1",
+        "setuptools==83.0.0",
         "opentelemetry-api>=1.27,<2",
     ],
 )
